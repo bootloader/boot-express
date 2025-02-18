@@ -57,7 +57,7 @@ boot-node/
 Create a new controller inside `app/controllers/`.
 
 ```javascript
-import { Controller, RequestMapping, ResponseBody } from "../../lib/decorators.js";
+import { Controller, RequestMapping, ResponseBody } from from "@bootloader/core/decorators";
 
 @Controller("/users")
 class UserController {
@@ -71,7 +71,7 @@ class UserController {
 
 ### Rendering Views
 ```javascript
-import { Controller, RequestMapping, ResponseView } from "../../lib/decorators.js";
+import { Controller, RequestMapping, ResponseView } from "@bootloader/core/decorators";
 
 @Controller("/dashboard")
 class DashboardController {
@@ -82,6 +82,18 @@ class DashboardController {
     return "dashboard"; // Renders views/dashboard.ejs
   }
 }
+```
+
+## Multi-module Support
+Default module is `app`, multiple modules can be added parellel to it and `app.js` can be replicated with few changes as below
+
+```javascript
+  loadApp({ 
+      name : "custom_app", // folder for application, default : app
+      context : "/test/",  // context path for each url in application,default : ""
+      app, //Must pass app
+      prefix : "/account" // prefix for urls, same as context but at path level,  default : ""
+  });
 ```
 
 ## Contributing
