@@ -53,7 +53,7 @@ function RequestMapping({ path, method }) {
 function ResponseBody() {
   let responseType = "json";
   return function (originalMethod, context) {
-    if (context.kind !== "method" || !context.access) {
+    if (context?.kind !== "method" || !context?.access) {
       throw new Error("@ResponseBody can only be used on methods!");
     }
     mappings.addHandler(originalMethod)
@@ -72,10 +72,18 @@ function ResponseView({  }) {
   };
 }
 
+function AuthRequired(auth) {
+  return function (originalMethod, context) {
+    mappings.addHandler(originalMethod)
+    mappings.updateHandler({auth})
+  }
+}
+
 module.exports = {
   Controller,
   RequestMapping,
   ResponseBody,
   ResponseView,
+  AuthRequired,
   mappings
 };

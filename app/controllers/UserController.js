@@ -1,4 +1,4 @@
-import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
+import { Controller, RequestMapping, ResponseBody, ResponseView, AuthRequired } from "@bootloader/core/decorators";
 
 @Controller("/users")
 export default class UserController {
@@ -19,6 +19,7 @@ export default class UserController {
     return "welcome";
   }
 
+  @AuthRequired()
   @RequestMapping({ path: "/get", method: "get" })
   @ResponseBody
   async getUsersGet() {

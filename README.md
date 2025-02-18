@@ -50,6 +50,7 @@ boot-node/
 │   ├── services/       # Business logic services
 │   ├── views/          # EJS templates
 │   └── models/         # Database models
+│   └── app.js         # Database models
 ├── dist/               # Compiled output (production build)
 ├── babel.config.js     # Babel configuration
 ├── package.json        # Dependencies and scripts
@@ -90,14 +91,23 @@ class DashboardController {
 ```
 
 ## Multi-module Support
-Default module is `app`, multiple modules can be added parellel to it and `app.js` can be replicated with few changes as below
+Default module is `app`, multiple modules can be added parellel to it and `app.js` can be replicated in each folder. `server.js` will need mappings to be added as below
 
 ```javascript
-  loadApp({ 
-      name : "custom_app", // folder for application, default : app
-      context : "/test/",  // context path for each url in application,default : ""
-      app, //Must pass app
-      prefix : "/account" // prefix for urls, same as context but at path level,  default : ""
+new BootLoader()
+  .map({
+    name: "app", // folder for application, default : app
+    context: "/", // context path for  application,default : ""
+  })
+  .map({
+    name: "app-test", // folder for application, default : app
+    context: "/test/", // context path for application,default : ""
+  })
+  .create(function ({ name, app }) {
+    console.log(`APP[${name}]: Created`);
+  })
+  .launch(function ({ name, server }) {
+    console.log(`APP[${name}]: Launched`);
   });
 ```
 
