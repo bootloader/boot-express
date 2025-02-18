@@ -3,6 +3,9 @@ import { readdirSync } from "fs";
 import { join } from "path";
 import { decorators } from "@bootloader/core";
 
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
+
 /**
  * Normalize a given path by removing duplicate slashes and trailing slashes.
  */
@@ -40,6 +43,8 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
   // Load controllers from the "controllers" directory
   const controllersPath = join(process.cwd(), `${name}/controllers`);
   const controllerFiles = readdirSync(controllersPath).filter((file) => file.endsWith(".js"));
+
+  let swaggerPaths = {};
 
   for (const file of controllerFiles) {
     const { default: ControllerClass } = require(join(controllersPath, file));
@@ -111,6 +116,20 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
             }
           }
         );
+
+        // Generate Swagger docs for each route
+        swaggerPaths[full_path] = {
+          [method]: {
+            summary: `Handler for ${name}`,
+            description: `Auto-generated handler for ${name}`,
+            tags: [controller.basePath],
+            responses: {
+              200: { description: "Success" },
+              401: { description: "Unauthorized" },
+              500: { description: "Internal Server Error" },
+            },
+          },
+        };
       }
     }
   }
@@ -120,6 +139,21 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
     res.app.set("views", join(process.cwd(), `${name}/views`));
     next();
   });
+
+  // Swagger setup
+  const swaggerDefinition = {
+    openapi: "3.0.0",
+    info: {
+      title: "BootStack API",
+      version: "1.0.0",
+      description: "Auto-generated API documentation using Swagger",
+    },
+    servers: [{ url: "http://localhost:3000" }],
+    paths: swaggerPaths,
+  };
+
+  const swaggerSpec = swaggerJsdoc({ definition: swaggerDefinition, apis: [] });
+  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   // Attach the router to the main app with the specified context
   app.use(context, router);
