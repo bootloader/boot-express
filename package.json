@@ -5,16 +5,16 @@
   "main": "dist/server.js",
   "scripts": {
     "clean": "rm -rf dist",
-    "build:app": "babel app --out-dir dist/app",
-    "build:core": "babel core --out-dir dist/core",
+    "build:app": "babel ${APP:-app} --out-dir dist/${APP:-app}",
+    "build:core": "babel @core --out-dir dist/@core",
     "build:server": "babel server.js --out-file dist/server.js",
-    "build:assets": "cp -r views dist/views && cp -r config dist/config",
+    "build:assets": "cp -r ${APP:-app}/views dist/${APP:-app}/views && cp -r config dist/config",
     "build": "npm run clean && npm run build:app && npm run build:core && npm run build:server && npm run build:assets",
-    "server": "cd dist && node server.js",
-    "dev": "node -r ./babel-register.js server.js",
-    "babel": "babel-node server.js",
-    "nodemon": "nodemon --exec babel-node server.js",
-    "ngrok": "node ngrok.js server.js"
+    "server": "cd dist && node server.js ${APP:-app}",
+    "dev": "node -r ./babel-register.js server.js ${APP:-app}",
+    "babel": "babel-node server.js ${APP:-app}",
+    "nodemon": "nodemon --exec babel-node server.js ${APP:-app}",
+    "ngrok": "node ngrok.js server.js ${APP:-app}"
   },
   "engines": {
     "node": "17.x"

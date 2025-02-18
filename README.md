@@ -26,7 +26,12 @@ npm install
 
 ### Development Mode
 ```sh
-npm run dev
+npm run babel #with babel
+#or
+npm run nodmon #with babel and nodemon
+#or
+npm run ngrok #with babel,nodemon, ngork (credentials required)
+
 ```
 This runs the server with Babel for ES module support and live reload.
 
