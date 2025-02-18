@@ -39,7 +39,7 @@ const APP = process.env.APP || "app";
         //console.log("NGROK_URL",config.getIfPresent("NGROK_URL"))
         //console.log("ngrok.url",config.store("ngrok").url)
         //Callback triggered when server is successfully listening. Hurray!
-        console.log(`APP[${options.name}]: Listening on http://localhost:${port}:/${options.context}`);
+        console.log(`APP[${options.name}]: Listening on http://localhost:${port}${options.context}`);
         //noway.emit('noway.started', null)
         if(onLaunch && typeof onLaunch =='function') onLaunch({...options, app,server,config})
     });

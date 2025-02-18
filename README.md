@@ -26,6 +26,8 @@ npm install
 
 ### Development Mode
 ```sh
+npm run dev #with dev mode
+#or
 npm run babel #with babel
 #or
 npm run nodmon #with babel and nodemon
@@ -38,7 +40,7 @@ This runs the server with Babel for ES module support and live reload.
 ### Production Mode
 ```sh
 npm run build
-npm start
+npm run server
 ```
 This compiles the source code and runs the optimized server.
 
@@ -109,6 +111,12 @@ new BootLoader()
   .launch(function ({ name, server }) {
     console.log(`APP[${name}]: Launched`);
   });
+```
+### build/run
+```bash 
+APP=app-test npm run dev
+APP=app-test npm run build
+APP=app-test npm run server
 ```
 
 ## Contributing
