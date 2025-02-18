@@ -61,6 +61,9 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
       }
     }
   }
-
+  router.use((req, res, next) => {
+    res.app.set("views", join(process.cwd(), `${name}/views`));
+    next();
+  });
   app.use(context, router);
 }
