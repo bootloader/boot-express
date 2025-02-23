@@ -4,6 +4,7 @@ import { join } from "path";
 import { decorators } from "@bootloader/core";
 import { redison, waitForReady } from "@bootloader/redison";
 import { Queue, Worker } from "bullmq";
+import crypto from "crypto";
 
 const BATCH_SIZE = 10;
 const MAX_WORKERS = 5;
@@ -44,8 +45,21 @@ async function initJobs({ name }) {
       let jobInstance = new JobClass();
 
       //console.log("jobjobjobjobv", job, JobClass);
-      JobClass.addJob = async function (data) {
-        await jobQueue.add("read", data);
+      JobClass.addJob = async function (data, options = {}) {
+        let jobId = options.jobId || crypto.randomUUID();
+        //console.log(`addJob(jobId:${jobId})`)
+        await jobQueue.add("read", data, {
+          jobId: jobId,
+          removeOnComplete: {
+            age: 3600, // keep up to 1 hour
+            count: 100, // keep up to 100 jobs
+          },
+          removeOnFail: {
+            age: 24 * 3600, // keep up to 1 hour
+            count: 500, // keep up to 1000 jobs
+          },
+          ...options,
+        });
       };
       let workers = job.workers || MAX_WORKERS;
       let delay = job.delay || RETRY_DELAY;
@@ -73,15 +87,30 @@ async function initJobs({ name }) {
               if (pushedTask && pushedTask.length) {
                 console.log("Total Tasks", pushedTask.length);
                 for (let task of pushedTask) {
-                  if (task) await taskQueue.add("execute", { task });
+                  if (task)
+                    await taskQueue.add(
+                      "execute",
+                      { task },
+                      {
+                        jobId: crypto.randomUUID(),
+                        removeOnComplete: {
+                          age: 3600, // keep up to 1 hour
+                          count: 1000, // keep up to 1000 jobs
+                        },
+                        removeOnFail: {
+                          age: 24 * 3600, // keep up to 1 hour
+                          count: 1000, // keep up to 1000 jobs
+                        },
+                      }
+                    );
                 }
-                await jobQueue.add("read", job.data, { delay: 1000 });
+                await JobClass.addJob(job.data, { delay: 1000, jobId: job.id });
               } else {
                 console.log(`No Task!! Job Finished.!!`);
               }
             } else {
-              console.log(`Queue full, delaying ${job.data.jobId}`);
-              await jobQueue.add("read", job.data, { delay: delay });
+              console.log(`Queue full, delaying ${job.id}`);
+              await JobClass.addJob(job.data, { delay: delay, jobId: job.id });
             }
           } catch (e) {
             console.error(e);
