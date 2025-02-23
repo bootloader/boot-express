@@ -18,16 +18,16 @@ function toArray(value) {
 }
 
 // Middleware wrapper
-function wrapMiddleware(middleware) {
+function wrapMiddleware(middleware, status = 400, message="Bad request") {
   return async (req, res, next) => {
       try {
           const result = await middleware({ request: req, response: res, next : next });
 
           // If middleware explicitly returns `false` or an error object, stop and respond
           if (result === false) {
-              return res.status(400).json({ error: 'Bad request' });
+              return res.status(status).json({ error: message });
           } else if (result && typeof result === 'object') {
-              return res.status(400).json(result);
+              return res.status(status).json(result);
           }
 
           // Otherwise, continue
@@ -94,7 +94,7 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
 
         const authMiddleware = middlewaresMap.AuthRequired?.middleware;
         if (auth && typeof authMiddleware == 'function') {
-          additionalMiddlewares = [wrapMiddleware(authMiddleware),...additionalMiddlewares];
+          additionalMiddlewares = [wrapMiddleware(authMiddleware,401,"Unauthorized"),...additionalMiddlewares];
         }
 
         // Define route with optional authentication middleware
