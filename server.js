@@ -16,4 +16,5 @@ new BootLoader()
   })
   .launch(function ({ name, server }) {
     console.log(`APP[${name}]: Launched`);
-  });
+  })
+  .initJobs();

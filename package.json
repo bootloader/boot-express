@@ -20,9 +20,11 @@
     "node": "17.x"
   },
   "dependencies": {
-    "@bootloader/core": "^0.0.3",
+    "@bootloader/core": "^0.0.4",
     "@bootloader/local": "^1.0.0",
+    "@bootloader/redison": "^1.1.0",
     "body-parser": "^1.19.0",
+    "bullmq": "^5.41.5",
     "connect-timeout": "^1.9.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
@@ -40,6 +42,7 @@
     "@babel/plugin-proposal-decorators": "^7.25.9",
     "@babel/preset-env": "^7.26.9",
     "@babel/register": "^7.25.9",
-    "nodemon": "^3.1.0"
+    "nodemon": "^3.1.0",
+    "redis-memory-server": "^0.12.1"
   }
 }
