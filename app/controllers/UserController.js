@@ -1,13 +1,15 @@
 import { Controller, RequestMapping, ResponseBody, ResponseView, AuthRequired } from "@bootloader/core/decorators";
+import {Test} from "../../@core/decorators";
+import middleware from "../middlewares/AuthRequired";
 
-@Controller("/users")
+@Controller({path : "/users", middleware : "ClassLevelMiddleware"})
 export default class UserController {
   constructor() {
     console.log("===UserController instantiated:", this.constructor);
   }
 
   @ResponseBody
-  @RequestMapping({ path: "/", method: "get" })
+  @RequestMapping({ path: "/", method: "get",middleware : "PathLevelMiddleware" })
   async getUsers() {
     return [{ id: 1, name: "John Doe" }];
   }

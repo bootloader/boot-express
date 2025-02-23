@@ -38,6 +38,12 @@ function Controller(basePath) {
   };
 }
 
+function Test(...args){
+  console.log("TEST:INSIDE",args)
+  return function (originalMethod,context) {
+    console.log("TEST:INSIDE",args)
+  }
+}
 
 function RequestMapping({ path, method }) {
   return function (originalMethod, context) {
@@ -85,5 +91,6 @@ module.exports = {
   ResponseBody,
   ResponseView,
   AuthRequired,
+  Test,
   mappings
 };

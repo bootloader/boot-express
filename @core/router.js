@@ -13,6 +13,31 @@ function normalizePath(path) {
   return path.replace(/\/+/g, "/").replace(/\/$/, "") || "/";
 }
 
+function toArray(value) {
+  return Array.isArray(value) ? value : [value];
+}
+
+// Middleware wrapper
+function wrapMiddleware(middleware) {
+  return async (req, res, next) => {
+      try {
+          const result = await middleware({ request: req, response: res, next : next });
+
+          // If middleware explicitly returns `false` or an error object, stop and respond
+          if (result === false) {
+              return res.status(400).json({ error: 'Bad request' });
+          } else if (result && typeof result === 'object') {
+              return res.status(400).json(result);
+          }
+
+          // Otherwise, continue
+          if (!res.headersSent) next();
+      } catch (err) {
+          next(err); // Pass error to Express error handler
+      }
+  };
+}
+
 /**
  * Load and configure an Express app with controllers and middlewares.
  *
@@ -29,7 +54,7 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
   const middlewaresPath = join(process.cwd(), `${name}/middlewares`);
   const middlewaresFiles = readdirSync(middlewaresPath).filter((file) => file.endsWith(".js"));
 
-  const middlewares = {};
+  const middlewaresMap = {};
   for (const file of middlewaresFiles) {
     const { default: middleware } = require(join(middlewaresPath, file));
 
@@ -37,7 +62,7 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
 
     // Use the filename (without extension) as the middleware key
     let middlewareName = file.split(".").slice(0, -1).join(".");
-    middlewares[middlewareName] = typeof middleware === "function" ? { middleware } : middleware;
+    middlewaresMap[middlewareName] = typeof middleware === "function" ? { middleware } : middleware;
   }
 
   // Load controllers from the "controllers" directory
@@ -59,24 +84,23 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
       let cTarget = new ControllerClass();
 
       // Iterate over controller mappings and set up routes
-      for (const { path, method, handler, responseType, name, auth } of controller.maps) {
-        let full_path = normalizePath(`/${prefix}/${controller.basePath}/${path}`);
+      for (const { path, method, handler, responseType, name, auth, middleware } of controller.maps) {
+        let full_path = normalizePath(`/${prefix}/${controller.path}/${path}`);
         console.log(`@RequestMappings:${method}:/${full_path} ${auth ? "-" : "="}> ${name}`);
+
+        let additionalMiddlewares = [...toArray(controller.middleware),...toArray(middleware)].map(function(mName){
+          return wrapMiddleware(middlewaresMap?.[mName]?.middleware || (() => true ));
+        }) || [];
+
+        const authMiddleware = middlewaresMap.AuthRequired?.middleware;
+        if (auth && typeof authMiddleware == 'function') {
+          additionalMiddlewares = [wrapMiddleware(authMiddleware),...additionalMiddlewares];
+        }
 
         // Define route with optional authentication middleware
         router[method](
           `${full_path}`,
-          function (req, res, next) {
-            // Check if authentication is required
-            const authMiddleware = middlewares.AuthRequired?.middleware;
-            if (auth) {
-              let authResp = authMiddleware({ request: req, response: res });
-              if (authResp !== true) {
-                return res.status(401).json(authResp);
-              }
-            }
-            next();
-          },
+          ...additionalMiddlewares,
           async (req, res) => {
             try {
               // Define global constants for the app
@@ -122,7 +146,7 @@ export function loadApp({ name = "app", context = "", app, prefix = "" }) {
           [method]: {
             summary: `Handler for ${name}`,
             description: `Auto-generated handler for ${name}`,
-            tags: [controller.basePath],
+            tags: [controller.path],
             responses: {
               200: { description: "Success" },
               401: { description: "Unauthorized" },
