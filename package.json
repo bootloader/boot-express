@@ -20,7 +20,7 @@
     "node": "17.x"
   },
   "dependencies": {
-    "@bootloader/core": "^0.0.4",
+    "@bootloader/core": "^0.0.5",
     "@bootloader/local": "^1.0.0",
     "@bootloader/redison": "^1.1.0",
     "body-parser": "^1.19.0",
