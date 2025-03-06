@@ -9,7 +9,12 @@ export default class SendCampaignJob {
     return [TASKS.pop(), TASKS.pop()]
   }
 
+  sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
   async execute({ task }) {
     console.log(`executing:`, task);
+    await this.sleep(5000);
   }
 }
