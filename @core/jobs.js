@@ -156,7 +156,7 @@ async function initJobs({ name, path }) {
               const message = await redis.lpop(task.id);
               if (message) {
                 let data = JSON.parse(message);
-                await jobInstance.execute({ task: data });
+                await jobInstance.execute({ task: data, queue: task.id });
                 setTimeout(async () => {
                   const state = await task.getState();
                   if (state === "completed" || state === "failed" || state === "delayed") {
@@ -172,7 +172,7 @@ async function initJobs({ name, path }) {
                 //console.log(`No Task in queue(${task.data.queue}) !!`);
               }
             } else {
-              await jobInstance.execute({ task: task.data });
+              await jobInstance.execute({ task: task.data, id: task.id });
             }
             //await task.moveToCompleted(); //
             //await task.remove(); // Now safe to remove

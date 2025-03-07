@@ -1,6 +1,6 @@
-const scriptbox = require("./scriptbox");
-const snippets = require("./snippets");
+const ScriptBox = require("./scriptbox");
+const Snippets = require("./snippets");
 
 module.exports = {
-  scriptbox, snippets
+  ScriptBox, Snippets
 };

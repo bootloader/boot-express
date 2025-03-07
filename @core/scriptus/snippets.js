@@ -1,17 +1,15 @@
 const fs = require("fs");
 const path = require("path");
+const coreutils = require("./../coreutils");
 
-const ROOT_DIR = path.resolve(__dirname);
+const ROOT_DIR = null; //path.resolve(__dirname);
 const STORE = {};
 
-function Snippets(scriptbox) {
+function Snippets() {
   this.context = function (context) {
     let $ = {};
     let _context = {
-      ...context,
-      has: scriptbox.has,
-      hasFunction: scriptbox.hasFunction,
-      setting: scriptbox.setting,
+      ...context
     };
     Object.keys(STORE).map(function (name) {
       let snippet = STORE[name];
@@ -23,11 +21,13 @@ function Snippets(scriptbox) {
 
 const readSnippets = function ({ scriptsDir }) {
   if (!scriptsDir) return;
+  coreutils.log("snippets from ", scriptsDir);
   const filenames = fs.readdirSync(scriptsDir);
   filenames.forEach((filename) => {
     if (filename !== "index.js") {
-      const { default: snippet } = require(join(scriptsDir, filename));
+      let snippet = require(path.join(scriptsDir, filename));
       STORE[filename.split(".")[0]] = snippet;
+      //console.log("Loaded snippet", snippet);
     }
   });
 };
@@ -39,6 +39,9 @@ const readSnippets = function ({ scriptsDir }) {
  */
 Snippets.load = function ({ root = ROOT_DIR, dir, scriptsDir }) {
   try {
+    if (!root) {
+      root = coreutils.getCallerDir();
+    }
     if (!scriptsDir) scriptsDir = path.resolve(root, dir);
     readSnippets({ scriptsDir });
   } catch (error) {
