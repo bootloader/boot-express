@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const coreutils = require("./../coreutils");
-var vm = require('vm');
+const coreutils = require("../utils/coreutils");
+var vm = require("vm");
 
 const ROOT_DIR = null; //path.resolve(__dirname);
 const STORE = {};

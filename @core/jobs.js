@@ -5,7 +5,7 @@ import { decorators } from "@bootloader/core";
 import { redis, waitForReady } from "@bootloader/redison";
 import { Queue, Worker } from "bullmq";
 import crypto from "crypto";
-const coreutils = require("./coreutils");
+const coreutils = require("./utils/coreutils");
 
 const BATCH_SIZE = 10;
 const MAX_WORKERS = 5;

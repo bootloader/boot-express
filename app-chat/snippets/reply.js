@@ -32,7 +32,7 @@ module.exports = function (
 
     reply(options) {
       return new ReplyPromise((resolve) => {
-        //console.log(`To(${contact_id}) Sending:`, options);
+        console.log(`To(${contact_id}) Sending:`, options);
         RQueue({ key: contact_id }).push(options);
         resolve(options);
       });
