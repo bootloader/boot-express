@@ -74,7 +74,7 @@ function MessageBoxCWC({ message, contact_id, sessionId }) {
   };
 
   this.sendMessage = function (options) {
-    RQueue({ key: contact_id }).push(options);
+    RQueue({ key: contact_id }).push({ author: "Bot", type: "text", data: { text: options } });
   };
 }
 module.exports = MessageBoxCWC;
