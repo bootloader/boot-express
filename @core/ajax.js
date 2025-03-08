@@ -1,3 +1,5 @@
+const fetch = require("node-fetch");
+
 const AbortController = globalThis.AbortController || require("abort-controller");
 const REQUEST_TIMOUT = 5000;
 
@@ -9,39 +11,9 @@ function createTimeout(time) {
   return controller;
 }
 
-class RespPromise extends Promise {
-  constructor(executor = (resolve) => resolve()) {
-    let resolver;
-    super((resolve, reject) => {
-      resolver = resolve;
-      executor(resolve, reject);
-    });
-    this.resolver = resolver;
-    this.data = null;
-  }
-
-  reply(options) {
-    return new RespPromise((resolve) => {
-      console.log(`To(${contact_id}) Sending:`, options);
-      adapter.sendMessage(options);
-      resolve(options);
-    });
-  }
-
-  listen(options) {
-    return new RespPromise((resolve) => {
-      setTimeout(() => {
-        console.log("Listing Options:", options);
-        resolve(options);
-      }, 1000);
-    });
-  }
-}
-
 async function request(url, method, headers, body) {
-  const timer = createTimeout();
-
   try {
+    const timer = createTimeout();
     const response = await fetch(url, {
       method,
       mode: "cors",
@@ -53,13 +25,23 @@ async function request(url, method, headers, body) {
       body: body ? JSON.stringify(body) : undefined,
       signal: timer.signal,
     });
-
     clearTimeout(timer.timeout);
-    return new RespPromise((resolve) => resolve(response));
+    return response;
   } catch (error) {
     console.error(`${method} Error:`, error);
-    throw error;
   }
+}
+
+function RespPromise(promise) {
+  this.text = async function () {
+    let response = await promise;
+    return await response.text();
+  };
+
+  this.json = async function () {
+    let response = await promise;
+    return await response.json();
+  };
 }
 
 module.exports = function (options) {
@@ -69,16 +51,64 @@ module.exports = function (options) {
   options.headers = options.headers || {};
 
   return {
-    async post(json) {
-      return request(
-        options.url,
-        "POST",
-        {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        JSON.stringify(json)
+    post(json) {
+      return new RespPromise(
+        request(
+          options.url,
+          "POST",
+          {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+          JSON.stringify(json)
+        )
       );
+    },
+    put(json) {
+      return new RespPromise(
+        request(
+          options.url,
+          "PUT",
+          {
+            "Content-Type": "application/json",
+            ...options.headers,
+          },
+          JSON.stringify(json)
+        )
+      );
+    },
+    submit(form) {
+      let data = new URLSearchParams();
+      for (let key in form) {
+        data.append(key, form[key]);
+      }
+      return new RespPromise(
+        request(
+          options.url,
+          "PUT",
+          {
+            "Content-Type": "application/x-www-form-urlencoded",
+            ...options.headers,
+          },
+          data
+        )
+      );
+    },
+    get(query) {
+      let data = new URLSearchParams();
+      for (let key in query) {
+        data.append(key, query[key]);
+      }
+      let endUrl = options.url + "?" + data.toString();
+      return new RespPromise(request(endUrl, "GET", options.headers));
+    },
+    delete(query) {
+      let data = new URLSearchParams();
+      for (let key in query) {
+        data.append(key, query[key]);
+      }
+      let endUrl = options.url + "?" + data.toString();
+      return new RespPromise(request(endUrl, "DELETE", options.headers));
     },
   };
 };
