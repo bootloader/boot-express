@@ -22,7 +22,7 @@
   "dependencies": {
     "@bootloader/core": "^0.0.7",
     "@bootloader/local": "^1.0.0",
-    "@bootloader/mongon": "^1.1.8",
+    "@bootloader/mongon": "^1.1.9",
     "@bootloader/redison": "^1.1.5",
     "body-parser": "^1.19.0",
     "bullmq": "^5.41.5",
