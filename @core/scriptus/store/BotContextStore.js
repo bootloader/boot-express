@@ -1,5 +1,5 @@
 const mongon = require("@bootloader/mongon");
-const BotContextSchema = require("./BotContextSchema");
+const BotContextSchema = require("../model/BotContextSchema");
 
 module.exports = {
   async get({ app_id, contact_id, domain, tnt }) {

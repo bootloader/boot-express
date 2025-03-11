@@ -54,7 +54,7 @@ function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
       // inputCode: inputCode,
       setTimeout: setTimeout,
       $: $,
-      console: console,
+      console: $.console,
 
       // setResolver: function (resolverName) {
       //   dbservice.setResolver(app_id, resolverName, contact_id, tnt);
