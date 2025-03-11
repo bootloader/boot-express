@@ -47,7 +47,20 @@ module.exports = function (
     }
   }
 
-  return function (options) {
+  function reply(options) {
     return new ReplyPromise().reply(options);
+  }
+
+  reply._handle = async function () {
+    var handler = session.handler.pop();
+    var handlerName = handler.name;
+    //console.log("handler",handler);
+    if (handlerName) {
+      return execute(handlerName);
+    } else if (handler && handler.type == "options") {
+      return $.listen._handle(handler);
+    }
   };
+
+  return reply;
 };
