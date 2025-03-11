@@ -54,7 +54,7 @@ async function logger({ appCode, contact_id, domain, session_id }, { level, type
       httpStatusCode,
       httpResp,
     });
-    return botLog.save();
+    return await botLog.save();
   } catch (e) {
     console.log("LOG SAVE EXCEPTION", e);
   }

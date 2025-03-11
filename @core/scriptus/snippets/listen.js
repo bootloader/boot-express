@@ -119,5 +119,5 @@ module.exports = function ($, { meta, server, tnt, app_id, appCode, domain, sess
     }
   };
 
-  return promise;
+  return listen;
 };

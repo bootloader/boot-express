@@ -25,7 +25,7 @@ async function logger({ app_id, contact_id, domain }, { level, type, logs }) {
         return _log;
       }),
     });
-    return botLog.save();
+    return await botLog.save();
   } catch (e) {
     console.log("LOG SAVE EXCEPTION", e);
   }
@@ -119,4 +119,6 @@ module.exports = function (
     error.apply(console, arguments);
     return this;
   };
+
+  return Console;
 };
