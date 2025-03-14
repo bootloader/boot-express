@@ -92,33 +92,14 @@ function ChatBox({ adapter }) {
     let contact = botContext.contact;
 
     let diff = Date.now() - contact.session_timeStamp;
-    // let handler = contact.nextHandler;
-
     if (diff > 1800000 || context.routing_id != contact.session?.routingId) {
-      // handler = "";
-      // dbservice.clearResolver(contact_id);
+      //Clear Session as Session is Expired
       BotContextStore.clearSession(context);
       BotContextStore.clearUserData(context);
-      contact.session = {
-        promise: [],
-        handler: [],
-      };
+      contact.session = null;
       contact.userData = {};
     }
-    //<@Deprecated
-    // if (context.params != null) {
-    //   var userData = new Object();
-    //   for (const key of Object.keys(context.params)) {
-    //     userData.key = context.params[key];
-    //   }
-    //   if (context.params.lang != null) {
-    //     context.params.userLang = context.params.lang;
-    //   }
-    //   contact.userData = context.params;
-    // }
-    //@Deprecated>
-
-    //
+    //Default Structure for Session
     contact.session = contact.session || {
       promise: [],
       handler: [],
@@ -126,9 +107,6 @@ function ChatBox({ adapter }) {
     BotContextStore.updateSessionTimeStamp(context);
     context.contact = contact;
 
-    //<@Deprecated
-    // context.userData = contact.userData;
-    //@Deprecated>
     return context;
   };
 
@@ -171,7 +149,7 @@ function ChatBox({ adapter }) {
       contact: contact,
     };
 
-    console.log("commitDetails", commitDetails)
+    console.log("commitDetails", commitDetails);
 
     if (returnValue && returnValue.then) {
       returnValue.then(function () {
