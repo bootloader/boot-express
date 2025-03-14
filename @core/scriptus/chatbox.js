@@ -77,6 +77,7 @@ function ChatBox({ adapter }) {
       contextName: `${domain} ${app_id}`,
       timeout: 10000,
     });
+    this.$ = $;
     return sb;
   };
 
@@ -151,7 +152,7 @@ function ChatBox({ adapter }) {
       }
     } else if (contact.session.handler?.length > 0) {
       try {
-        returnValue = await sb.snippet("reply")("_handle");
+        returnValue = await this.$.reply._handle();
       } catch (e) {
         console.error("onMessageListenException", e);
       }
@@ -187,7 +188,7 @@ function ChatBox({ adapter }) {
         ) {
           var promise = contact.session.promise[contact.session.promise.length - 1];
           try {
-            returnValue = await VM[promise.resolver]();
+            returnValue = await sb.execute(promise.resolver);
           } catch (e) {
             $.console.error("onPromiseResolveException", e);
           }

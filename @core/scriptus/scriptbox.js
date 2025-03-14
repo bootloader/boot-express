@@ -38,12 +38,6 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
     return this;
   };
 
-  this.snippet = function (snippet) {
-    return (method, ...args) => {
-      return VM.$[snippet][method](...args);
-    }
-  };
-
   this.execute = function (method, ...args) {
     return VM[method](...args);
   };
