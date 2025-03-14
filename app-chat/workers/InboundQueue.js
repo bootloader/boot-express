@@ -8,11 +8,11 @@ ChatBox.load({
 
 @Job({ name: "inboundQueue", workers: 4 })
 export default class InboundQueue {
-  async read({ job }) {
+  async read(job, {}) {
     console.log(`reading`, job);
   }
 
-  async execute({ task, queue }) {
+  async execute(task, { queue }) {
     console.log("InboundQueue > execute", { task, queue });
 
     const contact_id = queue;
