@@ -2,13 +2,14 @@ const utils = require("../../utils");
 
 module.exports = function ($, { meta, server, tnt, app_id, appCode, domain, session, inbound, execute, has, adapter }) {
   async function listen() {
-    let listener = $.listen_create.apply($.listen, arguments);
+    let listener = $.listen._create.apply($.listen, arguments);
     let handler = listener.getInfo();
     await $.listen._handle(handler);
+
     return {};
   }
 
-  listen.create = function () {
+  listen._create = function () {
     let handlerInfo = {
       type: "options",
       options: [],
@@ -53,7 +54,6 @@ module.exports = function ($, { meta, server, tnt, app_id, appCode, domain, sess
       },
     };
   };
-
   listen._intent = async function () {
     let service = setting(DEFAULT_INTENT_SERVICE_TYPE);
     switch (service) {
