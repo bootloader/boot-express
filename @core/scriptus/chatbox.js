@@ -8,7 +8,7 @@ const { cachebox } = require("@bootloader/redison");
 
 const ROOT_DIR = null; //path.resolve(__dirname);
 
-function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
+function ChatBox({ adapter }) {
   const context = adapter.toContext();
   context.domain = context.tnt || context.domain;
   context.tnt = context.domain;
@@ -21,7 +21,7 @@ function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
     });
 
     //Create Snippets Context
-    const $ = new Snippets({
+    this.$ = new Snippets({
       //Meta
       ...context,
       // Session
@@ -91,10 +91,10 @@ function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
     let contact = botContext.contact;
 
     let diff = Date.now() - contact.session_timeStamp;
-    let handler = contact.nextHandler;
+    // let handler = contact.nextHandler;
 
     if (diff > 1800000 || context.routing_id != contact.session?.routingId) {
-      handler = "";
+      // handler = "";
       // dbservice.clearResolver(contact_id);
       BotContextStore.clearSession(context);
       BotContextStore.clearUserData(context);
@@ -137,22 +137,21 @@ function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
 
     //Execute Function
     var returnValue = null;
-    if (coreutils.toFunction(isSessionStart)()) {
-      console.log(inbound?.event?.sessionRouted?.sourceQueue, "===>", inbound?.event?.sessionRouted?.targetQueue);
+    if (coreutils.toFunction(adapter.isSessionStart)()) {
       try {
         if (sb.has("onSessionStart")) returnValue = await sb.execute("onSessionStart");
       } catch (e) {
         console.error("onSessionStartException", e);
       }
-    } else if (coreutils.toFunction(isSessionRouted)()) {
+    } else if (coreutils.toFunction(adapter.isSessionRouted)()) {
       try {
         if (sb.has("onSessionRouted")) returnValue = await sb.execute("onSessionRouted");
       } catch (e) {
         console.error("onSessionRoutedException", e);
       }
-    } else if (handler?.length > 0) {
+    } else if (contact.session.handler?.length > 0) {
       try {
-        returnValue = await $.reply._handle();
+        returnValue = await this.$.reply._handle();
       } catch (e) {
         console.error("onMessageListenException", e);
       }
@@ -171,7 +170,7 @@ function ChatBox({ isSessionStart, isSessionRouted, handler = [], adapter }) {
       contact: contact,
     };
 
-    // console.log("commitDetails", JSON.stringify(commitDetails.contact))
+    console.log("commitDetails", commitDetails);
 
     if (returnValue && returnValue.then) {
       returnValue.then(function () {
