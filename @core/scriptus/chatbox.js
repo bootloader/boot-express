@@ -21,7 +21,7 @@ function ChatBox({ adapter }) {
     });
 
     //Create Snippets Context
-    this.$ = new Snippets({
+    const $ = new Snippets({
       //Meta
       ...context,
       // Session
@@ -151,7 +151,7 @@ function ChatBox({ adapter }) {
       }
     } else if (contact.session.handler?.length > 0) {
       try {
-        returnValue = await this.$.reply._handle();
+        returnValue = await sb.snippet("reply")("_handle");
       } catch (e) {
         console.error("onMessageListenException", e);
       }
@@ -170,7 +170,7 @@ function ChatBox({ adapter }) {
       contact: contact,
     };
 
-    console.log("commitDetails", commitDetails);
+    console.log("commitDetails", commitDetails)
 
     if (returnValue && returnValue.then) {
       returnValue.then(function () {
