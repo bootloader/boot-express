@@ -7,7 +7,7 @@
     "clean": "rm -rf dist",
     "build:core": "babel @core --out-dir dist/@core",
     "build:server": "babel server.js --out-file dist/server.js",
-    "build:app": "APP_PATH=${APP:+app-${APP}} && APP_PATH=${APP_PATH:-app} && babel ${APP_PATH} --out-dir dist/${APP_PATH}  ",
+    "build:app": "APP_PATH=${APP:+app-${APP}} && APP_PATH=${APP_PATH:-app} && babel ${APP_PATH} --out-dir dist/${APP_PATH} && babel app --out-dir dist/app  ",
     "build:assets": "APP_PATH=${APP:+app-${APP}} && APP_PATH=${APP_PATH:-app}  && cp -r ${APP_PATH}/views dist/${APP_PATH}/views && cp -r config dist/config",
     "build": "npm run clean && npm run build:app && npm run build:core && npm run build:server && npm run build:assets",
     "server": "cd dist && node server.js ${APP:-app}",
