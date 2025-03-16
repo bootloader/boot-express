@@ -1,8 +1,9 @@
 const config = require("@bootloader/config");
+const { requireOptional } = require("@bootloader/utils");
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
 
-var pjson = require("../../package.json");
-var bjson = require("../../public/build.info.json");
+var pjson = requireOptional("../../package.json");
+var bjson = requireOptional("../../public/build.info.json");
 const UP_STAMP = new Date();
 const UP_TIME = Date.now();
 

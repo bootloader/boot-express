@@ -2,16 +2,9 @@
 // const dbservice = require("../service/dbservice");
 // const TokenKeysScheme = require("../model/token_keys_schema");
 // const token_keys_service = require("../service/token_keys_service");
-const TokenKeysStore = require("../store/TokenKeysStore");
+const { requireOptional } = require("@bootloader/utils");
 
-function requireOptional(packageName) {
-  try {
-    return require(packageName);
-  } catch (error) {
-    console.log(`Optional module [${packageName}] not found, continuing without it.`);
-  }
-  return {};
-}
+const TokenKeysStore = require("../store/TokenKeysStore");
 
 const { OpenAI, AzureOpenAI } = requireOptional("openai");
 // const azureOpenAi = require("@azure/openai"); // {AzureKeyCredential}
