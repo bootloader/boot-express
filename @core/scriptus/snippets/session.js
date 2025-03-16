@@ -1,6 +1,6 @@
 const config = require("@bootloader/config");
 const mongon = require("@bootloader/mongon");
-var secretKey = config.get("mry.scriptus.secret");
+var secretKey = config.getIfPresent("mry.scriptus.secret");
 
 const ClientAppStore = require("../store/ClientAppStore");
 
@@ -27,13 +27,13 @@ module.exports = function (
 
       if (Object.keys(cleanParams).length) {
         // return new Promise(async function (resolve, reject) {
-          const ChatSession = mongon.getCollection(domain, `CHAT_SESSION`);
-          const updateResult = await ChatSession.updateOne(
-            { _id: mongon.Types.ObjectId(session_id) },
-            {
-              $set: cleanParams,
-            }
-          ); // catch ?
+        const ChatSession = mongon.getCollection(domain, `CHAT_SESSION`);
+        const updateResult = await ChatSession.updateOne(
+          { _id: mongon.Types.ObjectId(session_id) },
+          {
+            $set: cleanParams,
+          }
+        ); // catch ?
 
         //   resolve({
         //     success: updateResult.matchedCount ? true : false,
@@ -85,10 +85,12 @@ module.exports = function (
         return $.rest({
           url: base_url + "/api/v1/session/close",
           headers,
-        }).post({
-          ...params,
-          sessionId: session_id,
-        }).json();
+        })
+          .post({
+            ...params,
+            sessionId: session_id,
+          })
+          .json();
         // return this;
       },
       route(params) {
@@ -96,10 +98,12 @@ module.exports = function (
         return $.rest({
           url: base_url + "/api/v1/session/routing",
           headers,
-        }).post({
-          ...params,
-          sessionId: session_id,
-        }).json();
+        })
+          .post({
+            ...params,
+            sessionId: session_id,
+          })
+          .json();
         // return this;
       },
       feedback(params) {
@@ -112,10 +116,10 @@ module.exports = function (
           case "config":
             // this.promise = getAppConfig(params);
             return getAppConfig(params);
-            // break;
+          // break;
           case "custom":
             return getAppCustom(params);
-            // break;
+          // break;
           default:
             return Promise.resolve({});
         }

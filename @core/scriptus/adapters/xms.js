@@ -1,6 +1,6 @@
 const fetch = require("node-fetch");
 const config = require("@bootloader/config");
-var secretKey = config.get("mry.scriptus.secret");
+var secretKey = config.getIfPresent("mry.scriptus.secret");
 var messageTypes = ["template", "audio", "document", "image", "location", "text", "video", "voice", "contacts"];
 
 function XMSAdapeter({ message: messageBody }) {

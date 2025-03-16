@@ -4,10 +4,19 @@
 // const token_keys_service = require("../service/token_keys_service");
 const TokenKeysStore = require("../store/TokenKeysStore");
 
-const { OpenAI, AzureOpenAI } = require("openai");
+function requireOptional(packageName) {
+  try {
+    return require(packageName);
+  } catch (error) {
+    console.log(`Optional module [${packageName}] not found, continuing without it.`);
+  }
+  return {};
+}
+
+const { OpenAI, AzureOpenAI } = requireOptional("openai");
 // const azureOpenAi = require("@azure/openai"); // {AzureKeyCredential}
 // const { AzureKeyCredential } = require("@azure/openai"); // {AzureKeyCredential}
-const azureIdentity = require("@azure/identity"); //{ ClientSecretCredential }
+const azureIdentity = requireOptional("@azure/identity"); //{ ClientSecretCredential }
 
 // const { DEFAULT_INTENT_SERVICE_KEY } = require("../service/settings");
 const DEFAULT_INTENT_SERVICE_KEY = "DEFAULT_INTENT_SERVICE_KEY";
@@ -97,9 +106,14 @@ module.exports = function (
       async next(messages, functions) {
         try {
           let response = await this.chat_completions_create({
-            messages: (messages || [
-              { role: "system", content: "You are an Agent Who is curious about user's issue and wants to solve it." },
-            ]).filter(message => message.content && message.content.trim() !== ""),
+            messages: (
+              messages || [
+                {
+                  role: "system",
+                  content: "You are an Agent Who is curious about user's issue and wants to solve it.",
+                },
+              ]
+            ).filter((message) => message.content && message.content.trim() !== ""),
             functions: functions,
             function_call: functions && functions.length ? "auto" : undefined,
             max_tokens: 200,
