@@ -17,6 +17,7 @@ export default class AppInfoController {
   async getBuildInfo() {
     return {
       package_version: pjson.version,
+      app_name: config.getIfPresent("app.name"),
       app_version: config.getIfPresent("app.version"),
       db_prefix: config.getIfPresent("mongodb.db.prefix"),
       db_prefix: config.getIfPresent("mongodb.db.prefix"),
