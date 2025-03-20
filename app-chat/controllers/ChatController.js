@@ -1,13 +1,20 @@
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
 import { redis, RQueue, waitForReady } from "@bootloader/redison";
+import mongon from "@bootloader/mongon";
+const log4js = require("@bootloader/log4js");
+import { context } from "@bootloader/utils";
+import BotContextSchema from "../../@core/scriptus/model/BotContextSchema";
 
 import InboundQueue from "../workers/InboundQueue";
 import crypto from "crypto";
+import DemoService from "../services/DemoService";
+
+const console = log4js.getLogger("ChatController");
 
 @Controller("/")
 export default class ChatController {
   constructor() {
-    console.log("===ChatController instantsiated:", this.constructor);
+    console.info("===ChatController instantsiated:", this.constructor);
   }
 
   @ResponseView
@@ -19,11 +26,14 @@ export default class ChatController {
   @RequestMapping({ path: "/api/messages", method: "post" })
   @ResponseBody
   async postMessage({ request: { body, cookies }, response }) {
+    console.info(">>>>TENANT:", context.getTenant());
+    mongon.model(BotContextSchema);
     let contact_id = cookies.contact_id;
     if (!contact_id) {
       contact_id = crypto.randomUUID();
       response.cookie("contact_id", contact_id, { maxge: 900000, httpOnly: true });
     }
+    DemoService.testFunction();
     InboundQueue.task(body, {
       queue: contact_id,
     });
@@ -35,7 +45,7 @@ export default class ChatController {
   async defaultPage() {
     return "home";
   }
-  
+
   @ResponseBody
   @RequestMapping({ path: "/api/messages", method: "get" })
   async getMessage({ request: { body, cookies }, headers }) {
@@ -47,6 +57,4 @@ export default class ChatController {
     let msg = await RQueue({ key: contact_id }).pop();
     return { results: msg ? [msg] : [] };
   }
-
-
 }

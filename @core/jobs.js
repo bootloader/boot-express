@@ -1,6 +1,7 @@
 import express from "express";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
+import utils from "@bootloader/utils";
 import { decorators } from "@bootloader/core";
 import { redis, waitForReady } from "@bootloader/redison";
 import { Queue, Worker } from "bullmq";
@@ -36,6 +37,7 @@ async function initJobs({ name, path }) {
     const jobName = job.meta.name;
     const jobQueueName = `jobs-${jobName}`;
     const taskQueueName = `jobs-${jobName}-tasks`;
+    const redisQueuePrefix = `jobs-${jobName}-q`;
     const jobQueue = new Queue(jobQueueName, { connection: client });
     const taskQueue = new Queue(taskQueueName, { connection: client });
 
@@ -53,18 +55,22 @@ async function initJobs({ name, path }) {
       JobClass.start = async function (data, options = {}) {
         let jobId = options.jobId || crypto.randomUUID();
         //console.log(`addJob(jobId:${jobId})`)
-        await jobQueue.add("read", data, {
-          jobId: jobId,
-          removeOnComplete: {
-            age: 3600, // keep up to 1 hour
-            count: 100, // keep up to 100 jobs
-          },
-          removeOnFail: {
-            age: 24 * 3600, // keep up to 1 hour
-            count: 500, // keep up to 1000 jobs
-          },
-          ...options,
-        });
+        await jobQueue.add(
+          "read",
+          { data, context: utils.context.toMap() },
+          {
+            jobId: jobId,
+            removeOnComplete: {
+              age: 3600, // keep up to 1 hour
+              count: 100, // keep up to 100 jobs
+            },
+            removeOnFail: {
+              age: 24 * 3600, // keep up to 1 hour
+              count: 500, // keep up to 1000 jobs
+            },
+            ...options,
+          }
+        );
       };
 
       JobClass.task = async function (data, taskOptions = {}, options = {}) {
@@ -72,7 +78,10 @@ async function initJobs({ name, path }) {
           taskOptions.queue = taskOptions.queue;
           //console.log(`addJob(jobId:${jobId})`)
           if (data) {
-            await redis.rpush(taskOptions.queue, JSON.stringify(data));
+            await redis.rpush(
+              `${redisQueuePrefix}${taskOptions.queue}`,
+              JSON.stringify({ data, context: utils.context.toMap() })
+            );
           } else {
             //console.log(`No data to queue(${taskOptions.queue}) !!`);
           }
@@ -88,16 +97,20 @@ async function initJobs({ name, path }) {
             //console.log("❌ Failed to add task");
           }
         } else {
-          await taskQueue.add("execute", data, {
-            ...taskOptions,
-            jobId: crypto.randomUUID(),
-            removeOnComplete: true,
-            removeOnFail: {
-              age: 3600, // keep up to 1 hour
-              count: 1000, // keep up to 1000 jobs
-            },
-            ...options,
-          });
+          await taskQueue.add(
+            "execute",
+            { data, context: utils.context.toMap() },
+            {
+              ...taskOptions,
+              jobId: crypto.randomUUID(),
+              removeOnComplete: true,
+              removeOnFail: {
+                age: 3600, // keep up to 1 hour
+                count: 1000, // keep up to 1000 jobs
+              },
+              ...options,
+            }
+          );
         }
       };
 
@@ -114,7 +127,10 @@ async function initJobs({ name, path }) {
               const pendingTaskCount = await taskQueue.count();
               if (pendingTaskCount < workers * 2) {
                 let pushedTask = [];
-                let retTasks = await jobInstance.run(job.data, {
+                let { data, context } = job.data;
+                utils.context.fromMap(context);
+                let retTasks = await jobInstance.run(data, {
+                  context,
                   task(...tasks) {
                     pushedTask = [...pushedTask, ...tasks];
                   },
@@ -155,9 +171,10 @@ async function initJobs({ name, path }) {
               let taskOptions = { id: task.id };
               if ("queueTask" == task.name) {
                 taskOptions.queue = task.id; //use id as queue
-                const message = await redis.lpop(taskOptions.queue);
+                const message = await redis.lpop(`${redisQueuePrefix}${taskOptions.queue}`);
                 if (message) {
-                  let data = JSON.parse(message);
+                  let { data, context } = JSON.parse(message);
+                  utils.context.fromMap(context);
                   await jobInstance.execute(data, taskOptions);
                   setTimeout(async () => {
                     const state = await task.getState();
@@ -174,7 +191,11 @@ async function initJobs({ name, path }) {
                   //console.log(`No Task in queue(${task.data.queue}) !!`);
                 }
               } else {
-                await jobInstance.execute(task.data, taskOptions);
+                let { data, context } = task.data;
+                await utils.context.init(()=>{
+                })
+                utils.context.fromMap(context);
+                await jobInstance.execute(data, taskOptions);
               }
               //await task.moveToCompleted(); //
               //await task.remove(); // Now safe to remove
