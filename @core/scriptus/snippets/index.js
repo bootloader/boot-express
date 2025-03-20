@@ -13,7 +13,15 @@ function Snippets(context) {
     };
     Object.keys(STORE).map(function (name) {
       let snippet = STORE[name];
-      $[name] = snippet($, _context);
+      try {
+        if (typeof snippet === "function") {
+          $[name] = snippet($, _context);
+        } else {
+          $[name] = snippet;
+        }
+      } catch (e) {
+        console.error(`Error: snippet(${name}) no loaded.`);
+      }
     });
     return $;
   };
