@@ -7,31 +7,36 @@ const ROOT_DIR = null; //path.resolve(__dirname);
 const STORE = {};
 
 function ScriptBox({ name, name_fallback = [], code, load }) {
-  if (!code) {
-    code = STORE[name];
-
+  let vmscript, VM, script;
+  let $script = (async function () {
     if (!code) {
-      name_fallback = typeof name_fallback === "string" ? [name_fallback] : name_fallback;
-      for (let index = 0; index < name_fallback.length; index++) {
-        const fname = name_fallback[index];
-        code = STORE[fname];
-        if (code) break;
-      }
+      code = STORE[name];
 
       if (!code) {
-        code = load({ name });
+        name_fallback = typeof name_fallback === "string" ? [name_fallback] : name_fallback;
+        for (let index = 0; index < name_fallback.length; index++) {
+          const fname = name_fallback[index];
+          code = STORE[fname];
+          if (code) break;
+        }
+
+        if (!code) {
+          script = await load({ name });
+          code = script.code;
+        }
       }
     }
-  }
 
-  let script;
-  if (code) {
-    script = new vm.Script(code);
-  } else {
-    throw Error("Failed to load script", name);
-  }
+    if (code) {
+      vmscript = new vm.Script(code);
+    } else {
+      throw Error("Failed to load script", name);
+    }
+  })();
 
-  var VM;
+  this.getScript = function () {
+    return script;
+  };
 
   this.context = function (context) {
     VM = context;
@@ -54,8 +59,9 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
     return VM[key];
   };
 
-  this.run = function ({ contextName, timeout = 10000 }) {
-    script.runInNewContext(VM, {
+  this.run = async function ({ contextName, timeout = 10000 }) {
+    await $script;
+    vmscript.runInNewContext(VM, {
       contextName: contextName,
       timeout: timeout, // default : 10000 milliseconds
     });

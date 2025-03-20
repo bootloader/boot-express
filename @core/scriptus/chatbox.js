@@ -1,6 +1,7 @@
 const ScriptBox = require("./scriptbox");
 const Snippets = require("./snippets");
 const BotContextStore = require("./store/BotContextStore");
+const BotCodeStore = require("./store/BotCodeStore");
 
 const path = require("path");
 const coreutils = require("../utils/coreutils");
@@ -12,12 +13,17 @@ function ChatBox({ adapter }) {
   const context = adapter.toContext();
   context.domain = context.tnt || context.domain;
   context.tnt = context.domain;
-  const { appCode, app_id, contact_id, session_id, meta, server, tnt, domain, inbound } = context;
+  let { appType, appCode, app_id, appId, contact_id, session_id, meta, server, tnt, domain, inbound } = context;
+  appId = app_id || appId;
 
-  this.init = function ({ contact: { userData, session } }) {
+  this.init = async function ({ contact: { userData, session } }) {
     const sb = new ScriptBox({
       name: appCode,
-      id: app_id,
+      id: appId,
+      async load() {
+        let { code, config, botFlow: story } = await BotCodeStore.getBotCode({ appId: appId });
+        return { code, config, story };
+      },
     });
 
     //Create Snippets Context
@@ -28,6 +34,7 @@ function ChatBox({ adapter }) {
       session: session, //??
       userData: userData,
       config: {}, //scriptConfig ???
+      script: sb.getScript(),
       domainbox: cachebox({
         name: "domainbox",
         domain: domain,
@@ -47,36 +54,38 @@ function ChatBox({ adapter }) {
     });
 
     //Create ScriptBox Context and Run it
-    sb.context({
-      // inbound: inbound,
-      // message: text,
-      // userData: userData,
-      // inputCode: inputCode,
-      setTimeout: setTimeout,
-      $: $,
-      console: $.console,
+    await sb
+      .context({
+        // inbound: inbound,
+        // message: text,
+        // userData: userData,
+        // inputCode: inputCode,
+        setTimeout: setTimeout,
+        $: $,
+        console: $.console,
 
-      // setResolver: function (resolverName) {
-      //   dbservice.setResolver(app_id, resolverName, contact_id, tnt);
-      // },
-      // data: function (key, value) {
-      //   return $.store.data(key, value);
-      // },
-      // clearSession: function () {
-      //   var contactDetails = { contact_id: contact_id, app_id: app_id, tnt: tnt };
-      //   dbservice.clearSession(contactDetails);
-      //   contact.session.handler = [];
-      //   contact.session.promise = [];
-      // },
-      // clearUserData: function () {
-      //   var contactDetails = { contact_id: contact_id, app_id: app_id, tnt: tnt };
-      //   dbservice.clearUserData(contactDetails);
-      //   contact.session.userData = {};
-      // },
-    }).run({
-      contextName: `${domain} ${app_id}`,
-      timeout: 10000,
-    });
+        // setResolver: function (resolverName) {
+        //   dbservice.setResolver(app_id, resolverName, contact_id, tnt);
+        // },
+        // data: function (key, value) {
+        //   return $.store.data(key, value);
+        // },
+        // clearSession: function () {
+        //   var contactDetails = { contact_id: contact_id, app_id: app_id, tnt: tnt };
+        //   dbservice.clearSession(contactDetails);
+        //   contact.session.handler = [];
+        //   contact.session.promise = [];
+        // },
+        // clearUserData: function () {
+        //   var contactDetails = { contact_id: contact_id, app_id: app_id, tnt: tnt };
+        //   dbservice.clearUserData(contactDetails);
+        //   contact.session.userData = {};
+        // },
+      })
+      .run({
+        contextName: `${domain} ${app_id}`,
+        timeout: 10000,
+      });
     this.$ = $;
     return sb;
   };
@@ -112,7 +121,7 @@ function ChatBox({ adapter }) {
 
   this.execute = async function () {
     const { contact } = await this.context();
-    const sb = this.init({ contact });
+    const sb = await this.init({ contact });
 
     //Execute Function
     var returnValue = null;
