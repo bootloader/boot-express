@@ -1,15 +1,4 @@
-// const utils = require("../utils");
-// const dbservice = require("../service/dbservice");
-// const TokenKeysScheme = require("../model/token_keys_schema");
-// const token_keys_service = require("../service/token_keys_service");
-const { requireOptional } = require("@bootloader/utils");
-
-const TokenKeysStore = require("../store/TokenKeysStore");
-
-const { OpenAI, AzureOpenAI } = requireOptional("openai");
-// const azureOpenAi = require("@azure/openai"); // {AzureKeyCredential}
-// const { AzureKeyCredential } = require("@azure/openai"); // {AzureKeyCredential}
-const azureIdentity = requireOptional("@azure/identity"); //{ ClientSecretCredential }
+const OpenAIService = require("../clients/OpenAIService");
 
 // const { DEFAULT_INTENT_SERVICE_KEY } = require("../service/settings");
 const DEFAULT_INTENT_SERVICE_KEY = "DEFAULT_INTENT_SERVICE_KEY";
@@ -18,82 +7,41 @@ module.exports = function (
   $,
   { server, tnt, app_id, domain, contact_id, channel_id, session, userData, inbound, execute, setting, domainbox }
 ) {
-  function openai(_options) {
-    // $.openai = function (_options) {
-    let openaiDomainBox = domainbox.context("snippet.openai");
-    let options = _options || setting(DEFAULT_INTENT_SERVICE_KEY);
-    let key = (typeof options == "string" ? options : options?.key) || undefined;
-    async function getConfig() {
-      return await TokenKeysStore.get({
-        domain,
-        type: "gpt",
-        key: key,
-      });
-    }
-    // let tokenKeys = dbservice.getModel(domain,'CONFIG_TOKEN_KEYS',TokenKeysScheme);
-    // let findToken = tokenKeys.findOne({
-    //     type : "wit", disbaled : false
-    // });
+  function openai(_options = {}) {
+    let options = typeof _options == "string" ? { key: _options } : _options || {};
+    let openAIService = new OpenAIService({ domain, domainbox, ...options });
+
     return {
-      // then(cb){
-      //     return findToken.then(cb);
-      // },
+      async init(initOptions = {}) {
+        return await openAIService.init(initOptions);
+      },
       async chat_completions_create(a, ...args) {
-        let doc = await getConfig();
+        let { client, config } = await this.init({
+          provider: "AZURE",
+        });
         //console.log("doc===",_options,"====",doc)
-        if (doc?.value?.provider == "AZURE") {
-          if (doc.value.azure.authType == "SECRET") {
-            const azureCredential = new azureIdentity.ClientSecretCredential(
-              doc?.value?.azure?.tenantId,
-              doc?.value?.azure?.clientId,
-              doc?.secret?.azure?.clientSecret
-            );
-            const azureADTokenProvider = async () => {
-              let token = await openaiDomainBox.get("token");
-              if (!token) {
-                let tokenResp = await azureCredential.getToken("https://cognitiveservices.azure.com/.default");
-                token = tokenResp.token;
-                if (token) {
-                  await openaiDomainBox.set("token", token, { ttl: 45 * 60 });
-                }
-              }
-              return token;
-            };
-            return new AzureOpenAI({
-              azureADTokenProvider,
-              azureEndpoint: doc?.value?.azure?.endpoint,
-            });
-          } else if (doc.value.azure.authType == "TOKEN") {
+        if (!client) {
+          throw "Error ( No OpenAI Provider )";
+        }
+        if (client.provider == "AZURE") {
+          if (client.authType == "SECRET") {
+            //Not Sure if this is right call, NOT TESTED :-TODO
+            return client.chat.completions.create(a, ...args);
+          } else if (client.authType == "TOKEN") {
+            //Not Sure if this is right call, NOT TESTED :-TODO
+            return await client.chat.completions.create(a, ...args);
           } else {
-            let deployment = doc.value?.azure?.deployment || "gpt-3.5-turbo";
-            let apiVersion = doc.value?.azure?.apiVersion || "2024-10-01";
-            // for  "@azure/openai": "^1.0.0-beta",
-            // return await new azureOpenAi.OpenAIClient(
-            //     doc.value?.azure?.endpoint,
-            //     new azureOpenAi.AzureKeyCredential(doc.secret?.azure?.apiKey)
-            // ).getCompletions(deployment,a.messages);
-            return await new AzureOpenAI({
-              apiKey: doc.secret?.azure?.apiKey,
-              endpoint: doc.value?.azure?.endpoint,
-              deployment: deployment,
-              apiVersion: apiVersion,
-            }).chat.completions.create(a, ...args);
+            return await client.chat.completions.create(a, ...args);
           }
-        } else if (doc?.secret?.apiKey) {
-          let model = doc?.value?.model || "gpt-3.5-turbo";
+        } else {
           //console.log("=====",a,args)
-          return await new OpenAI({
-            apiKey: doc?.secret?.apiKey,
-            //logger: new log.Logger(log.INFO)
-          }).chat.completions.create(
+          return await client.chat.completions.create(
             {
-              model: model,
+              model: config?.model,
               ...a,
             },
             ...args
           );
-        } else {
-          throw "Error ( No OpenAI Provider )";
         }
       },
       async next(messages, functions) {
@@ -210,6 +158,10 @@ module.exports = function (
 
   openai.next = async function (messages, functions) {
     return await openai().next(messages, functions);
+  };
+
+  openai.init = async function (options) {
+    return await openai().init(options);
   };
 
   return openai;

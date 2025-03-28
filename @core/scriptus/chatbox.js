@@ -10,22 +10,29 @@ const { cachebox } = require("@bootloader/redison");
 const ROOT_DIR = null; //path.resolve(__dirname);
 
 function ChatBox({ adapter }) {
-  const context = adapter.toContext();
-  context.domain = context.tnt || context.domain;
-  context.tnt = context.domain;
-  let { appType, appCode, app_id, appId, contact_id, session_id, meta, server, tnt, domain, inbound } = context;
-  appId = app_id || appId;
+  let context = null;
+  const $context = (async function () {
+    context = await adapter.toContext();
+    context.domain = context.tnt || context.domain;
+    context.tnt = context.domain;
+    context.appId = context.app_id || context.appId;
+    context.contactId = context.contact_id || context.contactId;
+    context.sessionId = context.session_id || context.sessionId;
+    return context;
+  })();
 
   this.init = async function ({ contact: { userData, session } }) {
+    await $context;
     const sb = new ScriptBox({
-      name: appCode,
-      id: appId,
+      name: context.appCode,
+      id: context.appId,
       async load() {
-        let { code, config, botFlow: story } = await BotCodeStore.getBotCode({ appId: appId });
-        return { code, config, story };
+        let { code, config, botFlow: story } = await BotCodeStore.getBotCode({ appId: context.appId });
+        return { code, config, options: null, story };
       },
     });
 
+    //console.log("===",sb.getScript())
     //Create Snippets Context
     const $ = new Snippets({
       //Meta
@@ -37,13 +44,13 @@ function ChatBox({ adapter }) {
       script: sb.getScript(),
       domainbox: cachebox({
         name: "domainbox",
-        domain: domain,
+        domain: context.domain,
         ttl: 60 * 60 * 24 * 1,
       }),
       sessionbox: cachebox({
         name: "sessionbox",
-        domain: tnt,
-        context: session_id,
+        domain: context.domain,
+        context: context.session_id,
         ttl: 60 * 60 * 24 * 3,
       }),
       adapter: adapter,
@@ -83,7 +90,7 @@ function ChatBox({ adapter }) {
         // },
       })
       .run({
-        contextName: `${domain} ${app_id}`,
+        contextName: `${context.domain} ${context.appId}`,
         timeout: 10000,
       });
     this.$ = $;
@@ -91,6 +98,7 @@ function ChatBox({ adapter }) {
   };
 
   this.context = async function () {
+    await $context;
     let botContext = await BotContextStore.get(context);
     if (!botContext.contact) {
       console.warn(
@@ -152,13 +160,13 @@ function ChatBox({ adapter }) {
     }
 
     var commitDetails = {
-      app_id: app_id,
-      tnt: tnt,
-      contact_id: contact_id,
+      app_id: context.appId,
+      tnt: context.domain,
+      contact_id: context.contact_id,
       contact: contact,
     };
 
-    //console.log("commitDetails", commitDetails);
+    // console.log("commitDetails", JSON.stringify(commitDetails.contact))
 
     if (returnValue && returnValue.then) {
       returnValue.then(function () {

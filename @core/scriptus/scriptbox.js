@@ -10,21 +10,21 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
   let vmscript, VM, script;
   let $script = (async function () {
     if (!code) {
-      code = STORE[name];
+      script = STORE[name];
 
-      if (!code) {
+      if (!script) {
         name_fallback = typeof name_fallback === "string" ? [name_fallback] : name_fallback;
         for (let index = 0; index < name_fallback.length; index++) {
           const fname = name_fallback[index];
-          code = STORE[fname];
-          if (code) break;
+          script = STORE[fname];
+          if (script) break;
         }
 
-        if (!code) {
+        if (!script) {
           script = await load({ name });
-          code = script.code;
         }
       }
+      code = script.code;
     }
 
     if (code) {
@@ -41,6 +41,12 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
   this.context = function (context) {
     VM = context;
     return this;
+  };
+
+  this.snippet = function (snippet) {
+    return (method, ...args) => {
+      return VM.$[snippet][method](...args);
+    };
   };
 
   this.execute = function (method, ...args) {
@@ -80,8 +86,14 @@ const readFiles = function ({ scriptsDir }) {
   const filenames = fs.readdirSync(scriptsDir);
   filenames.forEach((filename) => {
     if (filename !== "index.js") {
+      let name = filename.split(".");
+      STORE[name[0]] = STORE[name[0]] || {};
       const content = fs.readFileSync(`${scriptsDir}/${filename}`, "utf-8");
-      STORE[filename.split(".")[0]] = content;
+      if (name[1] == "js") {
+        STORE[name[0]].code = content;
+      } else if (name[1] == "json") {
+        STORE[name[0]].options = JSON.parse(content);
+      }
       console.log("Loaded script", filename);
     }
   });

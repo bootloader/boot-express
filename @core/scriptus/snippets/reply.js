@@ -1,4 +1,5 @@
 const config = require("@bootloader/config");
+const Handlebars = require("handlebars");
 import ChainedPromise from "../../lib/ChainedPromise";
 
 module.exports = function (

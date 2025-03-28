@@ -9,19 +9,22 @@ module.exports = function ($, { session, execute }) {
     }
     add(n) {
       return this.chain(async function (parentResp) {
-        await coreutils.sleep(100);
+        // await coreutils.sleep(100);
+        console.log(`add ${n}`)
         return parentResp + n;
       });
     }
     substract(n) {
       return this.chain(async function (parentResp) {
-        await coreutils.sleep(100);
+        // await coreutils.sleep(100);
+        console.log(`subtract ${n}`)
         return parentResp - n;
       });
     }
     multiply(n) {
       return this.chain(async function (parentResp) {
-        await coreutils.sleep(100);
+        // await coreutils.sleep(100);
+        console.log(`multiply ${n}`)
         return parentResp * n;
       });
     }

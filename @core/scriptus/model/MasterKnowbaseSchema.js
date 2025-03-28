@@ -2,13 +2,15 @@ const mongon = require("@bootloader/mongon");
 
 const Schema = mongon.Schema(
   {
-    parentId: { type: String },
     code: { type: String },
+    idNumber: Number,
+    parentId: { type: String },
     type: { type: String },
     title: { type: String },
-    lang: { type: String },
     category: { type: String },
-    content: { type: String },
+    startnote: { type: String },
+    endnote: { type: String },
+    lang: { type: String },
   },
   {
     minimize: false,
