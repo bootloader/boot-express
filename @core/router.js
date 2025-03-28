@@ -7,6 +7,8 @@ import config from "@bootloader/config";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import coreutils from "./utils/coreutils";
+
+Symbol.metadata = Symbol.for("Symbol.metadata");
 /**
  * Normalize a given path by removing duplicate slashes and trailing slashes.
  */
@@ -41,6 +43,63 @@ function wrapMiddleware(middleware, status = 400, message = "Bad request") {
       next(err); // Pass error to Express error handler
     }
   };
+}
+function generateSwaggerDocs(method, options) {
+  if (method === "get" && options.query) {
+    // Handle GET query parameters
+    return {
+      parameters: Object.keys(options.query).map((key) => ({
+        name: key,
+        in: "query",
+        required: false,
+        schema: { type: "string" },
+        example: options.query[key] || "sample_value",
+      })),
+    };
+  }
+
+  if (method === "post" && options.json) {
+    // Handle POST JSON request body
+    return {
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: Object.fromEntries(
+                Object.entries(options.json).map(([key, value]) => [
+                  key,
+                  { type: typeof value === "number" ? "integer" : "string", example: value },
+                ])
+              ),
+            },
+          },
+        },
+      },
+    };
+  }
+
+  if (method === "post" && options.form) {
+    // Handle POST Form-urlencoded data
+    return {
+      requestBody: {
+        required: true,
+        content: {
+          "application/x-www-form-urlencoded": {
+            schema: {
+              type: "object",
+              properties: Object.fromEntries(
+                Object.entries(options.form).map(([key, value]) => [key, { type: "string", example: value }])
+              ),
+            },
+          },
+        },
+      },
+    };
+  }
+
+  return {};
 }
 
 /**
@@ -98,7 +157,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
     for (const file of controllerFiles) {
       const { default: ControllerClass } = require(join(controllersPath, file));
       if (!ControllerClass) continue;
-      console.log("ControllerClass", ControllerClass.name);
+      console.log("ControllerClass", ControllerClass.name, ControllerClass[Symbol.metadata]);
       // Get the last registered controller from the decorators system
       let controller = decorators.mappings.controller.find(ControllerClass);
       if (!controller) continue;
@@ -145,17 +204,6 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
         if (auth && typeof authMiddleware == "function") {
           additionalMiddlewares = [wrapMiddleware(authMiddleware, 401, "Unauthorized"), ...additionalMiddlewares];
         }
-
-        // Dynamically extract function parameter names
-        const paramTypes = handler.toString().match(/\{\s*request:\s*\{([^}]*)\}/);
-        let parameters = [];
-        if (paramTypes) {
-          parameters = paramTypes[1]
-            .split(",")
-            .map((p) => p.trim().split(":")[0]) // Extract key names
-            .filter((p) => p.length > 0);
-        }
-        console.log("=======================parameters", parameters, handler.toString());
 
         // Define route with optional authentication middleware
         router[method](`${full_path}`, ...additionalMiddlewares, async (req, res) => {
@@ -210,6 +258,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
             summary: `Handler for ${name}`,
             description: `Auto-generated handler for ${name}`,
             tags: [controller.path],
+            ...generateSwaggerDocs(method, meta),
             responses: {
               200: { description: "Success" },
               401: { description: "Unauthorized" },

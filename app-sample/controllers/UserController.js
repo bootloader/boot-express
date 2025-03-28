@@ -6,7 +6,7 @@ import { context } from "@bootloader/utils";
 import crypto from "crypto";
 import UserService from "../services/UserService";
 
-const console = log4js.getLogger("ChatController");
+const console = log4js.getLogger("UserController");
 
 @Controller("/user")
 export default class UserController {
@@ -15,12 +15,12 @@ export default class UserController {
   }
 
   @ResponseView
-  @RequestMapping({ path: "/list", method: "get" })
+  @RequestMapping({ path: "/list", method: "get", query: {} })
   async homePage() {
     return UserService.getUsersAll();
   }
 
-  @RequestMapping({ path: "/create", method: "post" })
+  @RequestMapping({ path: "/create", method: "post", form: { name: "NAME", email: "name@name.com", code: "COD" } })
   @ResponseBody
   async postMessage({
     request: {
@@ -29,6 +29,7 @@ export default class UserController {
     },
     response,
   }) {
+    console.log("createUsers", { name, email, code });
     return UserService.createUsers({ name, email, code });
   }
 

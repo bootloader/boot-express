@@ -16,6 +16,7 @@ export default {
     return await UserSchemaModel.findAll();
   },
   async createUsers({ name, email, code }) {
+    console.log("createUsers", { name, email, code });
     let UserSchemaModel = mongon.model(UserSchema);
     let user = new UserSchemaModel({
       name: name,
