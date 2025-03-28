@@ -146,6 +146,17 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
           additionalMiddlewares = [wrapMiddleware(authMiddleware, 401, "Unauthorized"), ...additionalMiddlewares];
         }
 
+        // Dynamically extract function parameter names
+        const paramTypes = handler.toString().match(/\{\s*request:\s*\{([^}]*)\}/);
+        let parameters = [];
+        if (paramTypes) {
+          parameters = paramTypes[1]
+            .split(",")
+            .map((p) => p.trim().split(":")[0]) // Extract key names
+            .filter((p) => p.length > 0);
+        }
+        console.log("=======================parameters", parameters, handler.toString());
+
         // Define route with optional authentication middleware
         router[method](`${full_path}`, ...additionalMiddlewares, async (req, res) => {
           try {
