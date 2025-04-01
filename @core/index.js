@@ -92,6 +92,16 @@ function BootLoader(...args) {
   };
 }
 
+// Prevent crashes due to unhandled promise rejections
+process.on("unhandledRejection", (err) => {
+  LOGGER.error("🔥 Unhandled Promise Rejection:", err);
+});
+
+// Prevent crashes due to uncaught exceptions
+process.on("uncaughtException", (err) => {
+  LOGGER.error("💥 Uncaught Exception:", err);
+});
+
 module.exports = {
   BootLoader,
 };
