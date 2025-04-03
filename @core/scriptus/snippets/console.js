@@ -1,34 +1,12 @@
-const mongon = require("@bootloader/mongon");
-const BotLogSchema = require("../model/BotLogSchema");
+const BotConsoleStore = require("../store/BotConsoleStore");
 
 var log = Function.prototype.bind.call(console.log, console);
 var debug = Function.prototype.bind.call(console.debug, console);
 var warn = Function.prototype.bind.call(console.warn, console);
 var error = Function.prototype.bind.call(console.error, console);
 
-async function logger({ app_id, contact_id, domain }, { level, type, logs }) {
-  try {
-    let BotLog = mongon.model(BotLogSchema, { domain });
-    const botLog = new BotLog({
-      domain: domain,
-      app_id: app_id,
-      contact_id: contact_id,
-      timestamp: Date.now(),
-      level: level,
-      type: type,
-      logs: (logs || []).map(function (_log) {
-        if (_log instanceof Error || (_log && _log.stack && _log.message)) {
-          return _log.stack.split("    at Object.execute")[0];
-        } else if (typeof _log == "object") {
-          return JSON.stringify(_log);
-        }
-        return _log;
-      }),
-    });
-    return await botLog.save();
-  } catch (e) {
-    console.log("LOG SAVE EXCEPTION", e);
-  }
+async function logger(options, data) {
+  return await BotConsoleStore.log(options, data);
 }
 
 module.exports = function (

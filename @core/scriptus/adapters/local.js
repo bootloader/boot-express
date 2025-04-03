@@ -3,9 +3,12 @@ import { redis, RQueue, waitForReady } from "@bootloader/redison";
 
 var scriptusDomain = config.getIfPresent("mry.scriptus.domain");
 var scriptusQueue = config.getIfPresent("mry.scriptus.queue") || "my_bot";
+const SESSIONS = {};
 
-function LocalAdapeter({ message, contact_id, sessionId, appCode = scriptusQueue, domain = scriptusDomain }) {
+function LocalAdapter({ message, contact_id, sessionId, appCode = scriptusQueue, domain = scriptusDomain }) {
   //{ author: "Bot", type: "text", data: { text: `Response(${$.inbound.data.text})` }
+
+  appCode = SESSIONS[sessionId] || appCode;
 
   this.toContext = function () {
     var context = {
@@ -15,7 +18,7 @@ function LocalAdapeter({ message, contact_id, sessionId, appCode = scriptusQueue
       server: null,
       tnt: domain,
       domain: domain,
-      app_id: "0",
+      app_id: appCode,
       appCode: appCode,
       appType: "bot",
       //Contact
@@ -41,8 +44,8 @@ function LocalAdapeter({ message, contact_id, sessionId, appCode = scriptusQueue
         ...context,
         text: message?.data?.text,
         inputCode: message?.data?.text,
-        session_id: sessionId,
-        routing_id: sessionId,
+        session_id: sessionId || "SESSIONID",
+        routing_id: sessionId || "SESSIONID",
         inbound: {
           ...context.inbound,
           //Original
@@ -82,8 +85,16 @@ function LocalAdapeter({ message, contact_id, sessionId, appCode = scriptusQueue
   };
 
   this.routeSession = function (options) {
-    scriptusQueue = options.queue;
+    //scriptusQueue = options.queue;
+    SESSIONS[sessionId] = options.queue;
     return {};
   };
 }
-module.exports = LocalAdapeter;
+
+LocalAdapter.config = {
+  domain: scriptusDomain,
+  queue: scriptusQueue,
+  appId: scriptusQueue,
+  appCode: scriptusQueue,
+};
+module.exports = LocalAdapter;

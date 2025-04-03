@@ -67,7 +67,7 @@ module.exports = function (
 
     reply(options) {
       return this.chain(async (resolve) => {
-        console.log(`(${contact_id}) Sending:`, options);
+        //console.log(`(${contact_id}) Sending:`, options);
 
         // let handlerindex = -1;
 

@@ -253,17 +253,16 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
         });
 
         // Generate Swagger docs for each route
-        swaggerPaths[full_path] = {
-          [method]: {
-            summary: `Handler for ${name}`,
-            description: `Auto-generated handler for ${name}`,
-            tags: [controller.path],
-            ...generateSwaggerDocs(method, meta),
-            responses: {
-              200: { description: "Success" },
-              401: { description: "Unauthorized" },
-              500: { description: "Internal Server Error" },
-            },
+        swaggerPaths[full_path] = swaggerPaths[full_path] || {};
+        swaggerPaths[full_path][method] = {
+          summary: `Handler for ${name}`,
+          description: `Auto-generated handler for ${name}`,
+          tags: [controller.path],
+          ...generateSwaggerDocs(method, meta),
+          responses: {
+            200: { description: "Success" },
+            401: { description: "Unauthorized" },
+            500: { description: "Internal Server Error" },
           },
         };
       }

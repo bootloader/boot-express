@@ -19,6 +19,7 @@ module.exports = function (
     }
     options(n) {
       return this.chain(async function (app) {
+        //console.log("options:script", script);
         if (!script.options) {
           script.options = {
             custom: app?.custom || {},

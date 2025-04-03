@@ -22,6 +22,7 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
 
         if (!script) {
           script = await load({ name });
+          //console.log("Loaded script", name, script);
         }
       }
       code = script.code;
@@ -30,11 +31,17 @@ function ScriptBox({ name, name_fallback = [], code, load }) {
     if (code) {
       vmscript = new vm.Script(code);
     } else {
-      throw Error("Failed to load script", name);
+      throw Error(`Failed to load script ${name}`);
     }
+    return script;
   })();
 
+  this.loaded = async function () {
+    return await $script;
+  };
+
   this.getScript = function () {
+    //console.log("getScript", name, script);
     return script;
   };
 
