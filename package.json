@@ -25,7 +25,7 @@
     "@bootloader/local": "^1.0.0",
     "@bootloader/log4js": "^1.0.5",
     "@bootloader/mongon": "^1.1.13",
-    "@bootloader/redison": "^1.1.8",
+    "@bootloader/redison": "^1.1.9",
     "@bootloader/utils": "^1.0.11",
     "abort-controller": "^3.0.0",
     "body-parser": "^1.19.0",
