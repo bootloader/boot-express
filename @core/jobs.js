@@ -38,8 +38,8 @@ async function initJobs({ name, path }) {
     const jobQueueName = `jobs-${jobName}`;
     const taskQueueName = `jobs-${jobName}-tasks`;
     const redisQueuePrefix = `jobs-${jobName}-q`;
-    const jobQueue = new Queue(jobQueueName, { connection: client });
-    const taskQueue = new Queue(taskQueueName, { connection: client });
+    const jobQueue = new Queue(jobQueueName, { connection: client, limiter: job.meta.limiter });
+    const taskQueue = new Queue(taskQueueName, { connection: client, limiter: job.meta.limiter });
 
     console.log("initJobs", `${path}/jobs`, file, job._routed);
 
@@ -52,7 +52,7 @@ async function initJobs({ name, path }) {
         job: jobInstance,
       };
       //console.log("jobjobjobjobv", job, JobClass);
-      JobClass.start = async function (data, options = {}) {
+      JobClass.run = async function (data, options = {}) {
         let jobId = options.jobId || crypto.randomUUID();
         //console.log(`addJob(jobId:${jobId})`)
         await jobQueue.add(
@@ -73,7 +73,7 @@ async function initJobs({ name, path }) {
         );
       };
 
-      JobClass.task = async function (data, taskOptions = {}, options = {}) {
+      JobClass.execute = async function (data, taskOptions = {}, options = {}) {
         if (taskOptions.queue) {
           taskOptions.queue = taskOptions.queue;
           //console.log(`addJob(jobId:${jobId})`)
@@ -119,7 +119,8 @@ async function initJobs({ name, path }) {
 
       // Setup Worker to Fetch Tasks
 
-      if (typeof jobInstance.run == "function") {
+      jobInstance.onRun = jobInstance.onRun || jobInstance.run;
+      if (typeof jobInstance.onRun == "function") {
         new Worker(
           jobQueueName,
           async (job) => {
@@ -129,7 +130,7 @@ async function initJobs({ name, path }) {
                 let pushedTask = [];
                 let { data, context } = job.data;
                 utils.context.fromMap(context);
-                let retTasks = await jobInstance.run(data, {
+                let retTasks = await jobInstance.onRun(data, {
                   context,
                   task(...tasks) {
                     pushedTask = [...pushedTask, ...tasks];
@@ -144,15 +145,15 @@ async function initJobs({ name, path }) {
                 if (pushedTask && pushedTask.length) {
                   console.log("Total Tasks", pushedTask.length);
                   for (let task of pushedTask) {
-                    if (task) await JobClass.task(task);
+                    if (task) await JobClass.execute(task);
                   }
-                  await JobClass.start(job.data, { delay: 1000, jobId: job.id });
+                  await JobClass.run(job.data, { delay: 1000, jobId: job.id });
                 } else {
                   console.log(`No Task!! Job Finished.!!`);
                 }
               } else {
                 console.log(`Queue full, delaying ${job.id}`);
-                await JobClass.start(job.data, { delay: delay, jobId: job.id });
+                await JobClass.run(job.data, { delay: delay, jobId: job.id });
               }
             } catch (e) {
               console.error(e);
@@ -162,7 +163,8 @@ async function initJobs({ name, path }) {
         );
       }
 
-      if (typeof jobInstance.execute == "function") {
+      jobInstance.onExecute = jobInstance.onExecute || jobInstance.execute;
+      if (typeof jobInstance.onExecute == "function") {
         // Setup Worker to Execute Tasks
         new Worker(
           taskQueueName,
@@ -175,7 +177,7 @@ async function initJobs({ name, path }) {
                 if (message) {
                   let { data, context } = JSON.parse(message);
                   utils.context.fromMap(context);
-                  await jobInstance.execute(data, taskOptions);
+                  await jobInstance.onExecute(data, taskOptions);
                   setTimeout(async () => {
                     const state = await task.getState();
                     if (state === "completed" || state === "failed" || state === "delayed") {
@@ -185,17 +187,16 @@ async function initJobs({ name, path }) {
                     } else {
                       //console.log(`❌ Task ${task.id} is in progress, cannot remove while locked`);
                     }
-                    await JobClass.task(null, taskOptions);
+                    await JobClass.execute(null, taskOptions);
                   }, 500);
                 } else {
                   //console.log(`No Task in queue(${task.data.queue}) !!`);
                 }
               } else {
                 let { data, context } = task.data;
-                await utils.context.init(()=>{
-                })
+                await utils.context.init(() => {});
                 utils.context.fromMap(context);
-                await jobInstance.execute(data, taskOptions);
+                await jobInstance.onExecute(data, taskOptions);
               }
               //await task.moveToCompleted(); //
               //await task.remove(); // Now safe to remove
@@ -233,6 +234,19 @@ async function initJobs({ name, path }) {
         }
       }
 
+      jobInstance.execute = async function (data, options = {}) {
+        await JobClass.execute(data, options);
+      };
+
+      jobInstance.run = async function (data, options = {}) {
+        await JobClass.run(data, options);
+      };
+
+      jobInstance.push = async function (data, options = {}) {
+        let queueName = `eq:app:*:topic:${job.meta.name}`;
+        await redis.lpush(queueName, JSON.stringify({ data, context: utils.context.toMap() })); // Non-Blocking call
+      };
+
       recoverJobs();
     }
   }
@@ -243,9 +257,10 @@ async function initQueues(app) {
   let client = await waitForReady();
   for (const { name, job } of Object.values(jobHolders)) {
     try {
-      if (typeof job.poll == "function") {
-        await executeOnQueue(app, name, job);
-        await executeOnQueue("*", name, job);
+      job.onPush = job.onPush || job.poll || job.push;
+      if (typeof job.onPush == "function") {
+        await executeOnPush(app, name, job);
+        await executeOnPush("*", name, job);
       }
     } catch (error) {
       coreutils.error("Queue processing error:", error);
@@ -254,13 +269,13 @@ async function initQueues(app) {
   setTimeout(() => initQueues(app), 1000);
 }
 
-async function executeOnQueue(app, topic, job) {
+async function executeOnPush(app, topic, job) {
   let queueName = `eq:app:${app}:topic:${topic}`;
   const message = await redis.rpop(queueName); // Non-Blocking call
   if (message) {
     let event = JSON.parse(message);
     coreutils.log(`Processed in Node.js ${queueName}: (${event})`);
-    job.poll(event.data, {});
+    job.onPush(event.data, {});
   }
 }
 

@@ -34,7 +34,7 @@ export default class ChatController {
       response.cookie("contact_id", contact_id, { maxge: 900000, httpOnly: true });
     }
     DemoService.testFunction();
-    InboundQueue.task(body, {
+    InboundQueue.execute(body, {
       queue: contact_id,
     });
     return { results: [body] };

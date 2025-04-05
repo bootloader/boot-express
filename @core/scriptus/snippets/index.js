@@ -66,4 +66,13 @@ Snippets.load = function ({ root = ROOT_DIR, dir, snippetsDir }) {
   }
 };
 
+Snippets.listAll = function () {
+  return Object.keys(STORE).map(function (name) {
+    return {
+      name: name,
+      snippet: typeof STORE[name],
+    };
+  });
+};
+
 module.exports = Snippets;
