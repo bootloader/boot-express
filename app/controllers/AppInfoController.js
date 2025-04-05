@@ -1,6 +1,8 @@
 const config = require("@bootloader/config");
 const log4js = require("@bootloader/log4js");
 const { requireOptional } = require("@bootloader/utils");
+const mongonPing = require("@bootloader/mongon/ping");
+const redisonPing = require("@bootloader/redison/ping");
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
 
 var pjson = requireOptional(".../../../package.json|../../package.json|../package.json|./package.json");
@@ -31,5 +33,23 @@ export default class AppInfoController {
       UP_STAMP: UP_STAMP.toISOString(),
       build: bjson,
     };
+  }
+
+  @ResponseBody
+  @RequestMapping({ path: "/mongo", method: "get" })
+  async getMongoInfo() {
+    LOGGER.info("getMongoInfo");
+    let resp = {};
+    resp.mongon = await mongonPing.push();
+    return resp;
+  }
+
+  @ResponseBody
+  @RequestMapping({ path: "/redis", method: "get" })
+  async getRedisInfo() {
+    LOGGER.info("getRedisInfo");
+    let resp = {};
+    resp.redisson = await redisonPing.get({ domain: "domain", type: "type", key: "key" });
+    return resp;
   }
 }
