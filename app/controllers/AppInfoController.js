@@ -3,10 +3,15 @@ const log4js = require("@bootloader/log4js");
 const { requireOptional } = require("@bootloader/utils");
 const mongonPing = require("@bootloader/mongon/ping");
 const redisonPing = require("@bootloader/redison/ping");
+
+const { Snippets } = require("../../@core/scriptus");
+
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
 
 var pjson = requireOptional(".../../../package.json|../../package.json|../package.json|./package.json");
-var bjson = requireOptional("../../public/build.info.json");
+var bjson = requireOptional(
+  "../../../public/build.info.json|../../public/build.info.json|../public/build.info.json|./public/build.info.json"
+);
 const UP_STAMP = new Date();
 const UP_TIME = Date.now();
 
@@ -32,6 +37,8 @@ export default class AppInfoController {
       UP_TIME: UP_TIME,
       UP_STAMP: UP_STAMP.toISOString(),
       build: bjson,
+      node_version: process.version,
+      snippets: Snippets.listAll(),
     };
   }
 

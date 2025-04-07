@@ -48,7 +48,7 @@ export default class ChatController {
 
   @ResponseBody
   @RequestMapping({ path: "/api/messages", method: "get" })
-  async getMessage({ request: { body, cookies }, headers }) {
+  async getMessage({ request: { body, cookies }, response }) {
     let contact_id = cookies.contact_id;
     if (!contact_id) {
       contact_id = crypto.randomUUID();

@@ -32,7 +32,7 @@ export default class UserController {
   @RequestMapping({ path: "/add_job", method: "get" })
   async pushJob() {
     let data = { id: 1, name: "John Doe", time: Date.now() };
-    SendCampaignJob.addJob(data);
+    SendCampaignJob.run(data);
     return [data];
   }
 
@@ -40,7 +40,7 @@ export default class UserController {
   @RequestMapping({ path: "/queue_task", method: "get" })
   async queueJob() {
     let data = { id: 1, name: "John Doe", time: Date.now() };
-    SendCampaignJob.queueTask(data);
+    SendCampaignJob.execute(data);
     return [data];
   }
 }
