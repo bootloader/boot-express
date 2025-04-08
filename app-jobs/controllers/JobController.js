@@ -1,6 +1,6 @@
 import { Controller, RequestMapping, ResponseBody, ResponseView, AuthRequired } from "@bootloader/core/decorators";
 
-import SendCampaignJob from "../workers/SendCampaign";
+import SendCampaignJob from "../workers/SendCampaignJob";
 
 @Controller({ path: "/", middleware: "ClassLevelMiddleware" })
 export default class UserController {
