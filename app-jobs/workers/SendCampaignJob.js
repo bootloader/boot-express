@@ -1,14 +1,18 @@
 import { Job } from "@bootloader/core/decorators";
 
-const TASKS = [{}, {}, {}, {}];
+const TASKS = [{ task: 1 }, { task: 2 }, { task: 3 }, { task: 4 }];
 
 @Job({ name: "sendCampaign", workers: 4 })
 export default class SendCampaignJob {
   async onRun(job) {
-    console.log(`reading`, job);
-
+    console.log(`running...`, job);
     this.execute(TASKS.pop());
     this.execute(TASKS.pop());
+    if (TASKS.length.length == 0) {
+      return false; //Do not continue the Job
+    } else {
+      return true; //Continue running
+    }
   }
 
   sleep(ms) {
