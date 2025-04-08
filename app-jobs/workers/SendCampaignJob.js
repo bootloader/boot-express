@@ -4,7 +4,7 @@ const TASKS = [{}, {}, {}, {}];
 
 @Job({ name: "sendCampaign", workers: 4 })
 export default class SendCampaignJob {
-  async run(job) {
+  async onRun(job) {
     console.log(`reading`, job);
     return [TASKS.pop(), TASKS.pop()];
   }
@@ -13,7 +13,7 @@ export default class SendCampaignJob {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async execute(task) {
+  async onExecute(task) {
     console.log(`executing:`, task);
     await this.sleep(5000);
   }
