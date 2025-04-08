@@ -6,7 +6,9 @@ const TASKS = [{}, {}, {}, {}];
 export default class SendCampaignJob {
   async onRun(job) {
     console.log(`reading`, job);
-    return [TASKS.pop(), TASKS.pop()];
+
+    this.execute(TASKS.pop());
+    this.execute(TASKS.pop());
   }
 
   sleep(ms) {
