@@ -155,6 +155,9 @@ async function initJobs({ name, path }) {
                   });
                 } else {
                   console.log(`No Task!! Job Finished.!!`);
+                  removeJob(job, async () => {
+                    console.log(`Job Finished.!!`);
+                  });
                 }
               } else {
                 removeJob(job, async () => {
