@@ -8,7 +8,7 @@ export default class SendCampaignJob {
     console.log(`running...`, job);
     this.execute(TASKS.pop());
     this.execute(TASKS.pop());
-    if (TASKS.length.length == 0) {
+    if (TASKS.length == 0) {
       return false; //Do not continue the Job
     } else {
       return true; //Continue running

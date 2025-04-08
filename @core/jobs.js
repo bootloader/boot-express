@@ -1,4 +1,3 @@
-import express from "express";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
 import utils from "@bootloader/utils";
@@ -15,7 +14,6 @@ const jobHolders = {};
 
 async function initJobs({ name, path }) {
   coreutils.log(`initJobs`);
-  const router = express.Router();
 
   // Load controllers from the "controllers" directory
   const jobsPath = join(process.cwd(), `${path}/workers`);
@@ -132,28 +130,37 @@ async function initJobs({ name, path }) {
                 utils.context.fromMap(context);
                 let retTasks = await jobInstance.onRun(data, {
                   context,
-                  task(...tasks) {
+                  execute(...tasks) {
                     pushedTask = [...pushedTask, ...tasks];
                   },
                 });
 
+                let pendingTasksCount = 0;
                 if (Array.isArray(retTasks)) {
                   pushedTask = [...pushedTask, ...retTasks].filter(function (task) {
                     return !!task;
                   });
+                  pendingTasksCount = pushedTask.length;
                 }
-                if (pushedTask && pushedTask.length) {
+                if (pendingTasksCount) {
                   console.log("Total Tasks", pushedTask.length);
                   for (let task of pushedTask) {
                     if (task) await JobClass.execute(task);
                   }
-                  await JobClass.run(job.data, { delay: 1000, jobId: job.id });
+                }
+
+                if (pendingTasksCount || retTasks === true) {
+                  removeJob(job, async () => {
+                    await JobClass.run(job.data.data, { delay: 1000, jobId: job.id });
+                  });
                 } else {
                   console.log(`No Task!! Job Finished.!!`);
                 }
               } else {
-                console.log(`Queue full, delaying ${job.id}`);
-                await JobClass.run(job.data, { delay: delay, jobId: job.id });
+                removeJob(job, async () => {
+                  console.log(`Queue full, delaying ${job.id}`);
+                  await JobClass.run(job.data.data, { delay: delay, jobId: job.id });
+                });
               }
             } catch (e) {
               console.error(e);
@@ -178,17 +185,9 @@ async function initJobs({ name, path }) {
                   let { data, context } = JSON.parse(message);
                   utils.context.fromMap(context);
                   await jobInstance.onExecute(data, taskOptions);
-                  setTimeout(async () => {
-                    const state = await task.getState();
-                    if (state === "completed" || state === "failed" || state === "delayed") {
-                      // If the job is not locked, safely remove it
-                      await task.remove();
-                      //console.log(`✅ Task ${task.id} removed successfully`);
-                    } else {
-                      //console.log(`❌ Task ${task.id} is in progress, cannot remove while locked`);
-                    }
+                  removeJob(task, async () => {
                     await JobClass.execute(null, taskOptions);
-                  }, 500);
+                  });
                 } else {
                   //console.log(`No Task in queue(${task.data.queue}) !!`);
                 }
@@ -277,6 +276,20 @@ async function executeOnPush(app, topic, job) {
     coreutils.log(`Processed in Node.js ${queueName}: (${event})`);
     job.onPush(event.data, {});
   }
+}
+
+function removeJob(task, callback) {
+  setTimeout(async () => {
+    const state = await task.getState();
+    if (state === "completed" || state === "failed" || state === "delayed") {
+      // If the job is not locked, safely remove it
+      await task.remove();
+      //console.log(`✅ Task ${task.id} removed successfully`);
+    } else {
+      //console.log(`❌ Task ${task.id} is in progress, cannot remove while locked`);
+    }
+    await callback();
+  }, 500);
 }
 
 export { initJobs };
