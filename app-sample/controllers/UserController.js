@@ -1,7 +1,7 @@
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
 import mongon from "@bootloader/mongon";
 const log4js = require("@bootloader/log4js");
-import { context } from "@bootloader/utils";
+import { ensure } from "@bootloader/utils";
 
 import crypto from "crypto";
 import UserService from "../services/UserService";
@@ -29,6 +29,7 @@ export default class UserController {
     },
     response,
   }) {
+    ensure.params({ name, email, code }).required();
     console.log("createUsers", { name, email, code });
     return UserService.createUsers({ name, email, code });
   }

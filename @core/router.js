@@ -3,6 +3,7 @@ import { readdirSync, existsSync } from "fs";
 import { join } from "path";
 import { decorators } from "@bootloader/core";
 import config from "@bootloader/config";
+import { ensure } from "@bootloader/utils";
 
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
@@ -247,8 +248,12 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
               console.log("No Response");
             }
           } catch (err) {
-            console.error(err);
-            res.status(500).json({ error: "Internal Server Error" });
+            if (err.name === ensure.MissingParamsError.name) {
+              res.status(400).json({ error: err.message, missing : err.missing });
+            } else {
+              console.error(err);
+              res.status(500).json({ error: "Internal Server Error" });
+            }
           }
         });
 
