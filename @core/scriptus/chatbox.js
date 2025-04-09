@@ -217,7 +217,7 @@ ChatBox.load = function ({ root = ROOT_DIR, dir, appDir }) {
 
   ScriptBox.load({
     root: appDir,
-    dir: "./scripts/",
+    dir: "./bots/",
   });
 
   Snippets.load({
