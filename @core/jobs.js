@@ -58,10 +58,7 @@ async function initJobs({ name, path }) {
           { data, context: utils.context.toMap() },
           {
             jobId: jobId,
-            removeOnComplete: {
-              age: 3600, // keep up to 1 hour
-              count: 100, // keep up to 100 jobs
-            },
+            removeOnComplete: true,
             removeOnFail: {
               age: 24 * 3600, // keep up to 1 hour
               count: 500, // keep up to 1000 jobs
@@ -100,7 +97,7 @@ async function initJobs({ name, path }) {
             { data, context: utils.context.toMap() },
             {
               ...taskOptions,
-              jobId: crypto.randomUUID(),
+              jobId: taskOptions.debounceKey || crypto.randomUUID(),
               removeOnComplete: true,
               removeOnFail: {
                 age: 3600, // keep up to 1 hour
@@ -169,7 +166,7 @@ async function initJobs({ name, path }) {
               console.error(e);
             }
           },
-          { connection: client }
+          { concurrency: workers, connection: client, removeOnComplete: true, removeOnFail: true }
         );
       }
 
