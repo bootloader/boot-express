@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# check if a remote named boot already exists, and only add it if it doesn't
+git remote get-url boot 2>/dev/null || git remote add boot git@github.com:bootloader/boot-express.git
 
 # Fetch all branches from the 'boot' remote
 git fetch boot
