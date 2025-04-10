@@ -70,18 +70,18 @@ async function initJobs({ name, path }) {
 
       JobClass.execute = async function (data, taskOptions = {}, options = {}) {
         if (taskOptions.queue) {
-          taskOptions.queue = taskOptions.queue;
+          taskOptions.jobId = taskOptions.jobId || `queue-${taskOptions.queue}`;
           //console.log(`addJob(jobId:${jobId})`)
           if (data) {
             await redis.rpush(
-              `${redisQueuePrefix}${taskOptions.queue}`,
+              `${redisQueuePrefix}${taskOptions.jobId}`,
               JSON.stringify({ data, context: utils.context.toMap() })
             );
           } else {
             //console.log(`No data to queue(${taskOptions.queue}) !!`);
           }
-          let task = await taskQueue.add("queueTask", taskOptions, {
-            jobId: taskOptions.queue, //use queue as id to create uniquness
+          let task = await taskQueue.add("queued", taskOptions, {
+            jobId: taskOptions.jobId, //use queue as id to create uniquness
             removeOnComplete: true,
             removeOnFail: true,
             ...options,
@@ -178,15 +178,14 @@ async function initJobs({ name, path }) {
           async (task) => {
             try {
               let taskOptions = { id: task.id };
-              if ("queueTask" == task.name) {
-                taskOptions.queue = task.id; //use id as queue
-                const message = await redis.lpop(`${redisQueuePrefix}${taskOptions.queue}`);
+              if ("queued" == task.name) {
+                const message = await redis.lpop(`${redisQueuePrefix}${taskOptions.jobId}`);
                 if (message) {
                   let { data, context } = JSON.parse(message);
                   utils.context.fromMap(context);
-                  await jobInstance.onExecute(data, taskOptions);
+                  await jobInstance.onExecute(data, task.data);
                   removeJob(task, async () => {
-                    await JobClass.execute(null, taskOptions);
+                    await JobClass.execute(null, task.data);
                   });
                 } else {
                   //console.log(`No Task in queue(${task.data.queue}) !!`);

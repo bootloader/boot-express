@@ -24,10 +24,13 @@ export default class JobController {
   }
 
   @ResponseBody
-  @RequestMapping({ path: "/queue_task", method: "get" })
-  async queueJob() {
+  @RequestMapping({ path: "/execute_task", method: "post", form : { queue: 1, name: "John Doe", time: Date.now() } })
+  async execute_task() {
     let data = { id: 1, name: "John Doe", time: Date.now() };
-    SendCampaignJob.execute(data);
+    SendCampaignJob.execute(data, {
+      queue: "queue_task",
+      debounceKey: "queue_task",
+    });
     return [data];
   }
 

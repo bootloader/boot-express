@@ -19,8 +19,8 @@ export default class SendCampaignJob {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async onExecute(task) {
-    console.log(`executing:`, task);
+  async onExecute(task, options) {
+    console.log(`executing:`, task, options);
     await this.sleep(5000);
   }
 }

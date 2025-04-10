@@ -1,7 +1,8 @@
 import express from "express";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
-import { decorators } from "@bootloader/core";
+//import { decorators } from "@bootloader/core";
+import decorators from "./decorators";
 import config from "@bootloader/config";
 import { ensure } from "@bootloader/utils";
 
@@ -249,7 +250,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
             }
           } catch (err) {
             if (err.name === ensure.MissingParamsError.name) {
-              res.status(400).json({ error: err.message, missing : err.missing });
+              res.status(400).json({ error: err.message, missing: err.missing });
             } else {
               console.error(err);
               res.status(500).json({ error: "Internal Server Error" });
