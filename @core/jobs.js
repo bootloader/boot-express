@@ -16,7 +16,8 @@ async function initJobs({ name, path }) {
   coreutils.log(`initJobs`);
 
   // Load controllers from the "controllers" directory
-  const jobsPath = join(process.cwd(), `${path}/workers`);
+  const jobsPathRel = `${path}/workers`;
+  const jobsPath = join(process.cwd(), jobsPathRel);
   let controllerFiles = [];
   if (existsSync(jobsPath)) {
     controllerFiles = readdirSync(jobsPath).filter((file) => file.endsWith(".js"));
@@ -39,7 +40,7 @@ async function initJobs({ name, path }) {
     const jobQueue = new Queue(jobQueueName, { connection: client, limiter: job.meta.limiter });
     const taskQueue = new Queue(taskQueueName, { connection: client, limiter: job.meta.limiter });
 
-    console.log("initJobs", `${path}/jobs`, file, job._routed);
+    console.log("initJobs", jobsPathRel, file, job._routed);
 
     if (!job._routed) {
       //job._routed = true;
