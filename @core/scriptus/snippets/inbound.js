@@ -1,4 +1,4 @@
-import { redis, RQueue, waitForReady } from "@bootloader/redison";
+import { redis, RQueue } from "@bootloader/redison";
 
 module.exports = function (
   $,

@@ -161,7 +161,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
     for (const file of controllerFiles) {
       const { default: ControllerClass } = require(join(controllersPath, file));
       if (!ControllerClass) continue;
-      coreutils.log(`Controller : ${ControllerClass.name}`,ControllerClass[Symbol.metadata]);
+      coreutils.log(`@Controller : ${ControllerClass.name}`,ControllerClass[Symbol.metadata]);
       // Get the last registered controller from the decorators system
       let controller = decorators.mappings.controller.find(ControllerClass);
       if (!controller) continue;

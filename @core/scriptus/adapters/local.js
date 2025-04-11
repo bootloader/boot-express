@@ -1,5 +1,5 @@
 const config = require("@bootloader/config");
-import { redis, RQueue, waitForReady } from "@bootloader/redison";
+import { redis, RQueue } from "@bootloader/redison";
 
 var scriptusDomain = config.getIfPresent("mry.scriptus.domain");
 var scriptusQueue = config.getIfPresent("mry.scriptus.queue") || "my_bot";

@@ -7,6 +7,8 @@ import { Queue, Worker } from "bullmq";
 import crypto from "crypto";
 const coreutils = require("./utils/coreutils");
 
+const console = require("@bootloader/log4js").getLogger("jobs");
+
 const BATCH_SIZE = 10;
 const MAX_WORKERS = 5;
 const RETRY_DELAY = 5000;
@@ -27,7 +29,10 @@ async function initJobs({ name, path }) {
   for (const file of controllerFiles) {
     const { default: JobClass } = require(join(jobsPath, file));
 
-    if (!JobClass) continue;
+    if (!JobClass) {
+      coreutils.log("@Job NOT A JOB", jobsPathRel, file);
+      continue;
+    }
 
     // Get the last registered controller from the decorators system
     let job = decorators.mappings.jobs.find(JobClass);
@@ -40,7 +45,7 @@ async function initJobs({ name, path }) {
     const jobQueue = new Queue(jobQueueName, { connection: client, limiter: job.meta.limiter });
     const taskQueue = new Queue(taskQueueName, { connection: client, limiter: job.meta.limiter });
 
-    console.log("initJobs", jobsPathRel, file, job._routed);
+    coreutils.log("@Job", jobsPathRel, file);
 
     if (!job._routed) {
       //job._routed = true;
@@ -72,7 +77,7 @@ async function initJobs({ name, path }) {
       JobClass.execute = async function (data, taskOptions = {}, options = {}) {
         if (taskOptions.queue) {
           taskOptions.jobId = taskOptions.jobId || `queue-${taskOptions.queue}`;
-          //console.log(`addJob(jobId:${jobId})`)
+          //console.log(`execute(jobId:${taskOptions.jobId})`);
           if (data) {
             await redis.rpush(
               `${redisQueuePrefix}${taskOptions.jobId}`,
@@ -178,9 +183,10 @@ async function initJobs({ name, path }) {
           taskQueueName,
           async (task) => {
             try {
-              let taskOptions = { id: task.id };
+              let taskOptions = { jobId: task.id };
               if ("queued" == task.name) {
-                const message = await redis.lpop(`${redisQueuePrefix}${taskOptions.jobId}`);
+                //console.log(`Polling from :${task.id}`);
+                const message = await redis.lpop(`${redisQueuePrefix}${task.id}`);
                 if (message) {
                   let { data, context } = JSON.parse(message);
                   utils.context.fromMap(context);
@@ -208,7 +214,7 @@ async function initJobs({ name, path }) {
       }
 
       async function recoverJobs() {
-        console.log("Recovering delayed jobs...");
+        coreutils.log("Recovering delayed jobs...");
         const delayedJobs = await jobQueue.getDelayed();
         for (const job of delayedJobs) {
           let delayLeft = 0;
@@ -216,11 +222,11 @@ async function initJobs({ name, path }) {
             const now = Date.now();
             delayLeft = Math.max(delayLeft, job.timestamp + job.opts.delay - now);
           }
-          console.log(`Re-adding job ${job.id} (was delayed :${delayLeft})`);
+          coreutils.log(`Re-adding job ${job.id} (was delayed :${delayLeft})`);
           await jobQueue.add("read", job.data, { delay: delayLeft }); // Re-add immediately
         }
         // Recovering delayed tasks
-        console.log("Recovering delayed tasks...");
+        coreutils.log("Recovering delayed tasks...");
         const delayedTasks = await taskQueue.getDelayed();
         for (const task of delayedTasks) {
           let delayLeft = 0;
@@ -228,7 +234,7 @@ async function initJobs({ name, path }) {
             const now = Date.now();
             delayLeft = Math.max(delayLeft, task.timestamp + task.opts.delay - now);
           }
-          console.log(`Re-adding task ${task.id} (was delayed :${delayLeft} )`);
+          coreutils.log(`Re-adding task ${task.id} (was delayed :${delayLeft} )`);
           await taskQueue.add("execute", task.data, { delay: delayLeft }); // Re-add immediately
         }
       }
@@ -253,7 +259,7 @@ async function initJobs({ name, path }) {
 }
 
 async function initQueues(app) {
-  let client = await waitForReady();
+  await waitForReady();
   for (const { name, job } of Object.values(jobHolders)) {
     try {
       job.onPush = job.onPush || job.poll || job.push;

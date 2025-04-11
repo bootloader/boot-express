@@ -3,7 +3,10 @@ import { Controller, RequestMapping, ResponseBody, ResponseView, AuthRequired } 
 import SendCampaignJob from "../workers/SendCampaignJob";
 import SendMessageJob from "../workers/sendMessageJob";
 
-let count = 0;
+const console = require("@bootloader/log4js").getLogger("ChatController");
+
+let jobCounter = 0;
+let taskCounter = 0;
 
 @Controller({ path: "/" })
 export default class JobController {
@@ -18,18 +21,18 @@ export default class JobController {
       query: { jobId },
     },
   }) {
-    let data = { id: ++count, name: "John Doe", time: Date.now() };
+    let data = { id: ++jobCounter, name: "John Doe", time: Date.now() };
     SendCampaignJob.run(data, { jobId });
     return [data];
   }
 
   @ResponseBody
-  @RequestMapping({ path: "/execute_task", method: "post", form : { queue: 1, name: "John Doe", time: Date.now() } })
+  @RequestMapping({ path: "/execute_task", method: "post", form: { queue: 1, name: "John Doe", time: Date.now() } })
   async execute_task() {
-    let data = { id: 1, name: "John Doe", time: Date.now() };
+    console.log("===execute_task");
+    let data = { id: ++taskCounter, name: "John Doe", time: Date.now() };
     SendCampaignJob.execute(data, {
-      queue: "queue_task",
-      debounceKey: "queue_task",
+      queue: "my_unique_queue",
     });
     return [data];
   }

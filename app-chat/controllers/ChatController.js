@@ -1,5 +1,5 @@
 import { Controller, RequestMapping, ResponseBody, ResponseView } from "@bootloader/core/decorators";
-import { redis, RQueue, waitForReady } from "@bootloader/redison";
+import { redis, RQueue } from "@bootloader/redison";
 import mongon from "@bootloader/mongon";
 const log4js = require("@bootloader/log4js");
 import { context } from "@bootloader/utils";
