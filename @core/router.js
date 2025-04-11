@@ -1,8 +1,8 @@
 import express from "express";
 import { readdirSync, existsSync } from "fs";
 import { join } from "path";
-//import { decorators } from "@bootloader/core";
-import decorators from "./decorators";
+import { decorators } from "@bootloader/core";
+//import decorators from "./decorators";
 import config from "@bootloader/config";
 import { ensure } from "@bootloader/utils";
 
@@ -141,6 +141,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
     // Load middlewares from the "middlewares" directory
     const middlewaresPath = join(process.cwd(), `${_appPath}/middlewares`);
     let middlewaresFiles = [];
+    coreutils.log(`Loading middlewares from", ${middlewaresPath}`);
     if (existsSync(middlewaresPath)) {
       middlewaresFiles = readdirSync(middlewaresPath).filter((file) => file.endsWith(".js"));
     }
@@ -153,13 +154,14 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
     }
     // Load controllers from the "controllers" directory
     const controllersPath = join(process.cwd(), `${_appPath}/controllers`);
+    coreutils.log(`Loading controllers from", ${controllersPath}`);
     const controllerFiles = readdirSync(controllersPath).filter((file) => file.endsWith(".js"));
 
     let _controllers = [];
     for (const file of controllerFiles) {
       const { default: ControllerClass } = require(join(controllersPath, file));
       if (!ControllerClass) continue;
-      console.log("ControllerClass", ControllerClass.name, ControllerClass[Symbol.metadata]);
+      coreutils.log(`Controller : ${ControllerClass.name}`,ControllerClass[Symbol.metadata]);
       // Get the last registered controller from the decorators system
       let controller = decorators.mappings.controller.find(ControllerClass);
       if (!controller) continue;
@@ -195,7 +197,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
       for (let { _, meta, context } of controllerMaps) {
         const { path, method, handler, responseType, name, auth, middleware, debug } = meta;
         let full_path = _.full_path; //normalizePath(`/${prefix}/${controller.meta.path}/${path}`);
-        console.log(`@RequestMappings:${method}:/${full_path} ${auth ? "-" : "="}> ${name}`);
+        coreutils.log(`@RequestMappings:${method}:/${full_path} ${auth ? "-" : "="}> ${name}`);
 
         let additionalMiddlewares =
           [...toArray(controller.middleware), ...toArray(middleware)].map(function (mName) {
