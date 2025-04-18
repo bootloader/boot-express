@@ -44,7 +44,7 @@ async function initJobs({ name, path }) {
     const redisQueuePrefix = `jobs-${jobName}-q`;
     const jobQueue = new Queue(jobQueueName, { connection: client, limiter: job.meta.limiter });
     const taskQueue = new Queue(taskQueueName, { connection: client, limiter: job.meta.limiter });
-    const executionStrategy = job.meta.executionStrategy || job.meta.execution_Strategy || "concurrent";
+    const executionStrategy = job.meta.executionStrategy || job.meta.execution_strategy || "concurrent";
     // POSSIBLE VALUE : concurrent, sequential, mutex;
 
     coreutils.log("@Job", jobsPathRel, file);
@@ -100,12 +100,17 @@ async function initJobs({ name, path }) {
             //console.log("❌ Failed to add task");
           }
         } else {
+          if (executionStrategy == "mutex") {
+            taskOptions.jobId = taskOptions.jobId || `mutex-${taskOptions.queue}`;
+          } else {
+            taskOptions.jobId = taskOptions.debounceKey || crypto.randomUUID();
+          }
           await taskQueue.add(
             executionStrategy,
             { data, context: utils.context.toMap() },
             {
               ...taskOptions,
-              jobId: taskOptions.debounceKey || crypto.randomUUID(),
+              jobId: taskOptions.jobId,
               removeOnComplete: true,
               removeOnFail: {
                 age: 3600, // keep up to 1 hour
