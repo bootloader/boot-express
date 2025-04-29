@@ -296,4 +296,11 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
   // Attach the router to the main app with the specified context
   coreutils.log(`at ${context} `);
   app.use(context, router);
+  // Redirect root URL to /myapp
+  let contextPath = normalizePath(context);
+  if (contextPath.length > 1) {
+    app.get("/", (req, res) => {
+      res.redirect(contextPath);
+    });
+  }
 }

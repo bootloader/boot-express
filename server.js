@@ -19,6 +19,10 @@ new BootLoader()
     name: "chat",
     context: "/chat/",
   })
+  .map({
+    name: "tuber",
+    context: "/tuber/",
+  })
   .create(function ({ name, app }) {
     console.log(`APP[${name}]: Created`);
   })
