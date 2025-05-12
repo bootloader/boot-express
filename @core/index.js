@@ -1,6 +1,5 @@
 const http = require("http");
-const https = require('https');
-
+const https = require("https");
 
 const config = require("@bootloader/config");
 const utils = require("@bootloader/utils");
@@ -62,7 +61,7 @@ function BootLoader(...args) {
 
       Apps.load(options);
       Middlewares.load();
-      
+
       app = require(`./../${path}/app.js`);
       app.use(Middlewares.get("ContextParser"));
       app.use(utils.context.withRequest());
@@ -109,9 +108,15 @@ function BootLoader(...args) {
   };
 
   this.initJobs = function () {
-    utils.context.init({ tenant: "JBS" }, () => {
-      initJobs(options);
-      LOGGER.info("inited....xxxxxxxxxxxxxxsxxxx", utils.context.getTraceId());
+    utils.context.init({ tenant: "JBS" }, async () => {
+      try {
+        let initd = await initJobs(options);
+        if(initd) {
+          LOGGER.info("JOBS : initd");
+        }
+      } catch (e) {
+        LOGGER.info("JOBS : Not initd");
+      }
     });
     return this;
   };
