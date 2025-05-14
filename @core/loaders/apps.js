@@ -7,19 +7,20 @@ const apps = {
   _options: null,
   _appPaths: null,
 
-  load({ name, path, context }) {
+  load({ name, path, context, include }) {
     if (this._initialized) return;
 
-    const appName = name;
-    const appPath = ["default", "app"].indexOf(appName) >= 0 ? "app" : `app-${appName}`;
+    //const appName = name;
     const appPaths = ["app"];
-    if (appPath !== appPaths[0]) {
-      appPaths.push(appPath);
+    const appNames = [...include, name];
+    for (let appName of appNames) {
+      let appPath = ["default", "app"].indexOf(appName) >= 0 ? "app" : `app-${appName}`;
+      if (appPaths.indexOf(appPath) < 0) {
+        appPaths.push(appPath);
+      }
     }
-
     this.setOptions({ name, path, context });
     this.setPaths(appPaths);
-
     this._initialized = true;
   },
 
