@@ -138,7 +138,7 @@ function generateSwaggerDocs(method, options) {
  * @param {Object} options.app - Express app instance.
  * @param {string} options.prefix - Optional prefix for routes.
  */
-export function loadApp({ name = "default", context = "", app, prefix = "" }) {
+export function loadApp({ name = "default", context = "", app }) {
   const router = express.Router();
 
   const appName = name;
@@ -167,25 +167,10 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
   let routers = [];
 
   appPaths.map(function (_appPath) {
-    /*
-    // Load middlewares from the "middlewares" directory
-    const middlewaresPath = join(process.cwd(), `${_appPath}/middlewares`);
-    let middlewaresFiles = [];
-    coreutils.log(`Loading middlewares from", ${middlewaresPath}`);
-    if (existsSync(middlewaresPath)) {
-      middlewaresFiles = readdirSync(middlewaresPath).filter((file) => file.endsWith(".js"));
-    }
-    for (const file of middlewaresFiles) {
-      const { default: middleware } = require(join(middlewaresPath, file));
-      if (!middleware) continue;
-      // Use the filename (without extension) as the middleware key
-      let middlewareName = file.split(".").slice(0, -1).join(".");
-      middlewaresMap[middlewareName] = typeof middleware === "function" ? { middleware } : middleware;
-    }
-    */
-
+    const { path: appPath, prefix: appPrefix } = Apps.getAppByPath(_appPath);
+    //console.log("================", appPath, appPrefix);
     // Load controllers from the "controllers" directory
-    const controllersPath = join(process.cwd(), `${_appPath}/controllers`);
+    const controllersPath = join(process.cwd(), `${appPath}/controllers`);
     coreutils.log(`Loading controllers from", ${controllersPath}`);
     const controllerFiles = readdirSync(controllersPath).filter((file) => file.endsWith(".js"));
     let _controllers = [];
@@ -196,19 +181,19 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
       // Get the last registered controller from the decorators system
       let controller = decorators.mappings.controller.find(ControllerClass);
       if (!controller) continue;
-      _controllers.push({ controller, ControllerClass });
+      _controllers.push({ controller, ControllerClass, appPath, appPrefix });
     }
     controllers = [...controllers, ..._controllers];
-    
+
     // Load routers from the "routers" directory
-    const routersPath = join(process.cwd(), `${_appPath}/routers`);
+    const routersPath = join(process.cwd(), `${appPath}/routers`);
     let routersFiles = [];
     if (existsSync(routersPath)) {
       routersFiles = readdirSync(routersPath).filter((file) => file.endsWith(".js"));
     }
     for (const file of routersFiles) {
       const r = require(join(routersPath, file));
-      if(!r || !r.path || !r.router){
+      if (!r || !r.path || !r.router) {
         coreutils.log(`@Router : ${file} has invalid export`);
         continue;
       }
@@ -219,14 +204,14 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
   controllers = controllers
     .map(function (c) {
       c.controller._ = c.controller._ || {};
-      c.controller._.full_path = normalizePath(`/${prefix}/${c.controller.meta.path}`);
+      c.controller._.full_path = normalizePath(`/${c.appPrefix}/${c.controller.meta.path}`);
       c.controller._.routeSpecificity = getRouteSpecificity(c.controller._.full_path);
       return c;
     })
     .sort((a, b) => b.controller._.routeSpecificity - a.controller._.routeSpecificity);
 
   /* mount controllers */
-  for (const { controller, ControllerClass } of controllers) {
+  for (const { controller, ControllerClass, appPath, appPrefix } of controllers) {
     if (!controller._routed) {
       controller._routed = true;
       let cTarget = new ControllerClass();
@@ -234,7 +219,7 @@ export function loadApp({ name = "default", context = "", app, prefix = "" }) {
       let controllerMaps = spreadPaths(controller.maps)
         .map(function (map) {
           map._ = map._ || {};
-          map._.full_path = normalizePath(`/${prefix}/${controller.meta.path}/${map.meta.path}`);
+          map._.full_path = normalizePath(`/${appPrefix}/${controller.meta.path}/${map.meta.path}`);
           map._.routeSpecificity = getRouteSpecificity(map._.full_path);
           return map;
         })

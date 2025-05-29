@@ -12,13 +12,30 @@ const apps = {
 
     //const appName = name;
     const appPaths = ["app"];
+    const apps = [
+      {
+        name: "default",
+        prefix: "/",
+        path: "app",
+      },
+    ];
     const appNames = [...include, name];
     for (let appName of appNames) {
-      let appPath = ["default", "app"].indexOf(appName) >= 0 ? "app" : `app-${appName}`;
+      let app = {
+        name: typeof appName === "string" ? appName : appName.name,
+        prefix: appName.prefix,
+      };
+      let appPath = ["default", "app"].indexOf(app.name) >= 0 ? "app" : `app-${app.name}`;
       if (appPaths.indexOf(appPath) < 0) {
         appPaths.push(appPath);
+        apps.push({
+          name: app.name,
+          path: appPath,
+          prefix: app.prefix || "/",
+        });
       }
     }
+    this._apps = apps;
     this.setOptions({ name, path, context });
     this.setPaths(appPaths);
     this._initialized = true;
@@ -52,6 +69,10 @@ const apps = {
 
   setPaths(newValue) {
     this._appPaths = newValue;
+  },
+
+  getAppByPath(path) {
+    return this._apps.filter((app) => app.path === path)[0];
   },
 };
 
