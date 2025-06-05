@@ -1,0 +1,15 @@
+{
+  "headers": {
+    "x-forwarded-port": "443"
+  },
+  "forward": {
+    "postman": {
+      "context": "postman",
+      "server": "http://127.0.0.1:8082"
+    },
+    "partner": {
+      "context": "partner",
+      "server": "http://127.0.0.1:8082"
+    }
+  }
+}

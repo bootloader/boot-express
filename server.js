@@ -24,6 +24,11 @@ new BootLoader()
     include: ["sample"],
     context: "/tuber/",
   })
+  .map({
+    name: "proxy",
+    //include: ["noway"],
+    context: "/",
+  })
   .create(function ({ name, app }) {
     console.log(`APP[${name}]: Created`);
   })
