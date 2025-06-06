@@ -88,8 +88,11 @@ async function initJobs({ name, path }) {
             const redisQueueId = `${redisQueuePrefix}${taskOptions.jobId}`;
             let wasAdded = true;
             if (taskOptions.dedupeKey) {
-              wasAdded = await redis.sadd(redisQueueId, taskOptions.dedupeKey);
-              redis.expire(key, 60 * 60); // expire after 1 hour
+              wasAdded = await redis.sadd(`${redisQueueId}-set`, taskOptions.dedupeKey);
+              redis.expire(redisQueueId, 60 * 60); // expire after 1 hour
+              if (wasAdded && taskOptions.dedupeSpan) {
+                await utils.timely.wait(taskOptions.dedupeSpan);
+              }
               //await redis.srem(this.setKey, item.uniqueKey);
             }
             if (wasAdded) {
@@ -98,6 +101,9 @@ async function initJobs({ name, path }) {
                 JSON.stringify({ data, context: utils.context.toMap(), dedupeKey: taskOptions.dedupeKey })
               );
             } else {
+              // console.log(
+              //   `❌ Task with dedupeKey ${taskOptions.dedupeKey} already exists in queue(${taskOptions.queue})`
+              // );
               return;
             }
           } else {
@@ -215,7 +221,7 @@ async function initJobs({ name, path }) {
                   utils.context.fromMap(context);
                   await jobInstance.onExecute(data, task.data);
                   if (dedupeKey) {
-                    await redis.srem(redisQueueId, dedupeKey);
+                    await redis.srem(`${redisQueueId}-set`, dedupeKey);
                   }
                   removeJob(task, async () => {
                     await JobClass.execute(null, task.data);

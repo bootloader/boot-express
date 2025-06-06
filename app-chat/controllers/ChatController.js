@@ -36,6 +36,8 @@ export default class ChatController {
     DemoService.testFunction();
     InboundQueue.execute(body, {
       queue: contact_id,
+      dedupeKey: "<uniqueu_message_id>",
+      dedupeSpan: 1 * 1000, // 1 minute
     });
     return { results: [body] };
   }
