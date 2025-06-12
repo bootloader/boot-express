@@ -8,6 +8,7 @@ export default class SendMessageJob {
   async onRun(data) {
     console.log("Running job to create message tasks:", data);
     this.execute(messages);
+    this.exequte(messages);
     return false;
   }
   sleep(ms) {

@@ -26,7 +26,7 @@
     "@bootloader/local": "^1.0.0",
     "@bootloader/log4js": "^1.0.6",
     "@bootloader/mongon": "^1.1.15",
-    "@bootloader/proxy": "^1.0.4",
+    "@bootloader/proxy": "^1.0.6",
     "@bootloader/redison": "^1.1.15",
     "@bootloader/utils": "^1.0.23",
     "abort-controller": "^3.0.0",
