@@ -9,7 +9,19 @@
     },
     "partner": {
       "context": "partner",
-      "server": "http://127.0.0.1:8082"
+      "server": "http://127.0.0.1:8086"
+    },
+    "common": {
+      "context": "common",
+      "server": "http://127.0.0.1:8086"
+    },
+    "test": {
+      "context": "test",
+      "server": "http://127.0.0.1:8085"
+    },
+    "account": {
+      "context": "",
+      "server": "http://127.0.0.1:8086"
     }
   }
 }
