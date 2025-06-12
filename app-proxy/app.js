@@ -57,13 +57,9 @@ app.use(bodyParser.raw({limit: '50mb'}));
 
 //app.use(timeout("10s"));
 
-let tuberDir = config.get("tuber.dir");
-app.use("/media", express.static(tuberDir));
-
 app.get('/',function(req,res) {
     res.send({ x : "Hello World!"});
 });
-
 
 app.use((req,res,next) =>{
     const error = new Error('Path Not found');
