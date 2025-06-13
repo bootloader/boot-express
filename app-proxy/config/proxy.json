@@ -17,7 +17,8 @@
     },
     "test": {
       "context": "test",
-      "server": "http://127.0.0.1:8085"
+      "server": "http://127.0.0.1:8085",
+      "target" : "xms"
     },
     "account": {
       "context": "",
