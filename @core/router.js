@@ -328,7 +328,7 @@ export function loadApp({ name = "default", context = "", app }) {
   };
 
   const swaggerSpec = swaggerJsdoc({ definition: swaggerDefinition, apis: [] });
-  app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+  app.use("/swagger-ui.html", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
   // Attach the router to the main app with the specified context
   coreutils.log(`at ${context} `);
