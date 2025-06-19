@@ -18,10 +18,10 @@
     "test": {
       "context": "test",
       "server": "http://127.0.0.1:8085",
-      "target" : "xms"
+      "target": "xms"
     },
     "account": {
-      "context": "",
+      "context": "/",
       "server": "http://127.0.0.1:8086"
     }
   }

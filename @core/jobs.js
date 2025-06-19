@@ -121,7 +121,7 @@ async function initJobs({ name, path }) {
             //console.log("❌ Failed to add task");
           }
         } else {
-          if (executionStrategy == "mutex") {
+          if (executionStrategy == "mutex") { /// IT IS DEBOUNCED
             taskOptions.jobId = taskOptions.jobId || `mutex-${taskOptions.queue}`;
           } else {
             taskOptions.jobId = taskOptions.debounceKey || crypto.randomUUID();
