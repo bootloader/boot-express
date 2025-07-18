@@ -9,11 +9,20 @@ export default class HookController {
     logger.info("===HookController instantsiated:", this.constructor);
   }
 
+  @RequestMapping({ path: "/print", method: "get", form: { name: "NAME", email: "name@name.com", code: "COD" } })
+  @ResponseBody
+  async printBodyGet({ request: { query  }, response }) {
+    logger.info(`------------------------------------`);
+    let chlg = query['hub.challenge'].replace(/[\"\']/g, "")-0
+    console.log(chlg);
+    return chlg;
+  }
+
   @RequestMapping({ path: "/print", method: "post", form: { name: "NAME", email: "name@name.com", code: "COD" } })
   @ResponseBody
   async printBody({ request: { body }, response }) {
     logger.info(`------------------------------------`);
-    console.log(JSON.parse(body));
+    console.log(JSON.stringify(body));
     return body;
   }
 }
