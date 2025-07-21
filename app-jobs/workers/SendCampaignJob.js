@@ -23,4 +23,9 @@ export default class SendCampaignJob {
     console.log(`executing:`, task, options);
     await this.sleep(5000);
   }
+
+  async onAggregate(tasks, options) {
+    console.log(`aggregated:`, tasks, options);
+    await this.sleep(5000);
+  }
 }

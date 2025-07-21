@@ -44,6 +44,22 @@ export default class JobController {
     return [data];
   }
 
+  @OpenAPI({ form: { queue: 1, name: "John Doe", time: Date.now() } })
+  @ResponseBody
+  @RequestMapping({ path: "/aggregate_task", method: "post" })
+  async aggregate_task({
+    request: {
+      body: { queue = "my_unique_queue" },
+    },
+  }) {
+    console.log("===aggregate_task");
+    let data = { id: ++taskCounter, name: "John Doe", time: Date.now() };
+    SendCampaignJob.aggregate(data, {
+      queue: queue,
+    });
+    return [data];
+  }
+
   @OpenAPI({ query: { channelId: "" } })
   @ResponseBody
   @RequestMapping({ path: "/send_message", method: "get" })

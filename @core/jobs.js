@@ -3,6 +3,7 @@ import { join } from "path";
 import utils from "@bootloader/utils";
 import { decorators } from "@bootloader/core";
 import { redis, waitForReady } from "@bootloader/redison";
+import SafeQueue from "./lib/SafeQueue";
 import { Queue, Worker } from "bullmq";
 import crypto from "crypto";
 const coreutils = require("./utils/coreutils");
@@ -45,10 +46,16 @@ async function initJobs({ name, path }) {
     const jobName = job.meta.name;
     const jobQueueName = `jobs-${jobName}`;
     const taskQueueName = `jobs-${jobName}-tasks`;
-    const redisQueuePrefix = `jobs-${jobName}-q`;
+    const taskQueuePiplineName = `jobs-${jobName}-tasks-pipeline`;
+    const aggrQueueName = `jobs-${jobName}-aggr`;
+    const aggrQueuePiplineName = `jobs-${jobName}-aggr-pipeline`;
     const jobQueue = new Queue(jobQueueName, { connection: client, limiter: job.meta.limiter });
     const taskQueue = new Queue(taskQueueName, { connection: client, limiter: job.meta.limiter });
+    const aggrQueue = new Queue(aggrQueueName, { connection: client, limiter: job.meta.limiter });
+
     const executionStrategy = job.meta.executionStrategy || job.meta.execution_strategy || "concurrent";
+    const aggregationStrategy = job.meta.aggregationStrategy || job.meta.aggregation_strategy || "sequential"; // POSSIBLE VALUE : concurrent, sequential, mutex;
+
     // POSSIBLE VALUE : concurrent, sequential, mutex;
 
     coreutils.log("@Job", jobsPathRel, file);
@@ -85,11 +92,11 @@ async function initJobs({ name, path }) {
           taskOptions.jobId = taskOptions.jobId || `queue-${taskOptions.queue}`;
           //console.log(`execute(jobId:${taskOptions.jobId})`);
           if (data) {
-            const redisQueueId = `${redisQueuePrefix}${taskOptions.jobId}`;
+            const taskQueuePipelineId = `${taskQueuePiplineName}${taskOptions.jobId}`;
             let wasAdded = true;
             if (taskOptions.dedupeKey) {
-              wasAdded = await redis.sadd(`${redisQueueId}-set`, taskOptions.dedupeKey);
-              redis.expire(redisQueueId, 60 * 60); // expire after 1 hour
+              wasAdded = await redis.sadd(`${taskQueuePipelineId}-set`, taskOptions.dedupeKey);
+              redis.expire(taskQueuePipelineId, 60 * 60); // expire after 1 hour
               if (wasAdded && taskOptions.dedupeSpan) {
                 await utils.timely.wait(taskOptions.dedupeSpan);
               }
@@ -97,7 +104,7 @@ async function initJobs({ name, path }) {
             }
             if (wasAdded) {
               await redis.rpush(
-                redisQueueId,
+                taskQueuePipelineId,
                 JSON.stringify({ data, context: utils.context.toMap(), dedupeKey: taskOptions.dedupeKey })
               );
             } else {
@@ -121,7 +128,8 @@ async function initJobs({ name, path }) {
             //console.log("❌ Failed to add task");
           }
         } else {
-          if (executionStrategy == "mutex") { /// IT IS DEBOUNCED
+          if (executionStrategy == "mutex") {
+            /// IT IS DEBOUNCED
             taskOptions.jobId = taskOptions.jobId || `mutex-${taskOptions.queue}`;
           } else {
             taskOptions.jobId = taskOptions.debounceKey || crypto.randomUUID();
@@ -141,6 +149,26 @@ async function initJobs({ name, path }) {
             }
           );
         }
+      };
+
+      JobClass.aggregate = async function (data, taskOptions = {}, options = {}) {
+        taskOptions.jobId = taskOptions.jobId || `aggr-${taskOptions.queue}`;
+        //console.log(`execute(jobId:${taskOptions.jobId})`);
+        if (data) {
+          const aggrQueuePipelineId = `${aggrQueuePiplineName}${taskOptions.jobId}`;
+          const aggrQueuePipeline = new SafeQueue(aggrQueuePipelineId);
+          await aggrQueuePipeline.push(
+            JSON.stringify({ data, context: utils.context.toMap(), dedupeKey: taskOptions.dedupeKey })
+          );
+        } else {
+          //console.log(`No data to queue(${taskOptions.queue}) !!`);
+        }
+        let task = await aggrQueue.add("sequential", taskOptions, {
+          jobId: taskOptions.jobId, //use queue as id to create uniquness
+          removeOnComplete: true,
+          removeOnFail: true,
+          ...options,
+        });
       };
 
       let workers = job.workers || MAX_WORKERS;
@@ -214,14 +242,14 @@ async function initJobs({ name, path }) {
               let taskOptions = { jobId: task.id };
               if (executionStrategy == "sequential") {
                 //console.log(`Polling from :${task.id}`);
-                const redisQueueId = `${redisQueuePrefix}${task.id}`;
-                const message = await redis.lpop(redisQueueId);
+                const taskQueuePipelineId = `${taskQueuePiplineName}${task.id}`;
+                const message = await redis.lpop(taskQueuePipelineId);
                 if (message) {
                   let { data, context, dedupeKey } = JSON.parse(message);
                   utils.context.fromMap(context);
                   await jobInstance.onExecute(data, task.data);
                   if (dedupeKey) {
-                    await redis.srem(`${redisQueueId}-set`, dedupeKey);
+                    await redis.srem(`${taskQueuePipelineId}-set`, dedupeKey);
                   }
                   removeJob(task, async () => {
                     await JobClass.execute(null, task.data);
@@ -234,6 +262,54 @@ async function initJobs({ name, path }) {
                 await utils.context.init(() => {});
                 utils.context.fromMap(context);
                 await jobInstance.onExecute(data, taskOptions);
+              }
+              //await task.moveToCompleted(); //
+              //await task.remove(); // Now safe to remove
+            } catch (e) {
+              console.error(e);
+            }
+          },
+          { concurrency: workers, connection: client, removeOnComplete: true, removeOnFail: true }
+        );
+      }
+
+      jobInstance.onAggregate = jobInstance.onAggregate || jobInstance.aggregate;
+      if (typeof jobInstance.onAggregate == "function") {
+        // Setup Worker to Execute Tasks
+        new Worker(
+          aggrQueueName,
+          async (task) => {
+            try {
+              let taskOptions = { jobId: task.id };
+              //console.log(`Polling from :${task.id}`);
+              const aggrQueuePipelineId = `${aggrQueuePiplineName}${task.id}`;
+              const aggrQueuePipeline = new SafeQueue(aggrQueuePipelineId);
+              const messages = await aggrQueuePipeline.poll(10);
+
+              if (messages && messages.length) {
+                let _context = null;
+                let _messages = [];
+                for (const message of messages) {
+                  if (message.raw) {
+                    let { data, context, dedupeKey } = message.data;
+                    _context = context;
+                    _messages.push(data);
+                  }
+                }
+
+                if (_context) {
+                  try {
+                    utils.context.fromMap(_context);
+                    await jobInstance.onAggregate(_messages, task.data);
+                    await aggrQueuePipeline.ack(messages);
+                  } catch (e) {
+                    console.error("Error in onAggregate:", e);
+                    await aggrQueuePipeline.nack(messages);
+                  }
+                  removeJob(task, async () => {
+                    await JobClass.aggregate(null, task.data);
+                  });
+                }
               }
               //await task.moveToCompleted(); //
               //await task.remove(); // Now safe to remove
