@@ -7,10 +7,6 @@ This framework allows developers to define distributed, scalable background jobs
 ## 🚀 Example: Campaign Job with Task Fan-Out
 
 ```ts
-import { Job } from "@bootloader/core/decorators";
-
-const TASKS = [{ task: 1 }, { task: 2 }, { task: 3 }, { task: 4 }];
-
 @Job({
   name: "sendCampaign",
   workers: 4,
@@ -19,20 +15,27 @@ const TASKS = [{ task: 1 }, { task: 2 }, { task: 3 }, { task: 4 }];
 export default class SendCampaignJob {
   async onRun(job) {
     console.log(`running...`, job);
-    this.execute(TASKS.pop());
-    this.execute(TASKS.pop());
-
-    return TASKS.length > 0; // return true to keep running, false to stop
+    const messages = fetchAllMessagesForCampaign({ id: job.campaignId, limit: 10 });
+    for (let massage of messages) {
+      this.execute(massage, { queue: job.campaignId });
+    }
+    return TASKS.length == 10; // return true to keep running, false to stop
   }
 
-  async onExecute(task, options) {
-    console.log(`executing:`, task, options);
-    await new Promise((r) => setTimeout(r, 5000));
+  async onExecute(massage, options) {
+    console.log(`executing:`, massage, options);
+    this.aggregate({ campaignId: massage.campaignId, compelted: 1 }, { queue: massage.campaignId });
   }
 
   async onAggregate(tasks, options) {
     console.log(`aggregated:`, tasks, options);
-    await new Promise((r) => setTimeout(r, 5000));
+    let completed = 0;
+    for (let task of tasks) {
+      completed = completed + task.completed;
+    }
+    let summary = fetchSummary({ campaignId: tasks.campaignId });
+    summary.completed = summary.completed + completed;
+    updateSummaryToDb({ summary });
   }
 }
 ```
@@ -53,27 +56,27 @@ export default class SendCampaignJob {
 
 ### `onRun(job)`
 
-* Called repeatedly by the job queue.
-* Push tasks using `this.execute(data)`.
-* Return `false` to stop, `true` to continue.
+- Called repeatedly by the job queue.
+- Push tasks using `this.execute(data)`.
+- Return `false` to stop, `true` to continue.
 
 ### `onExecute(task, options)`
 
-* Called for each individual task.
-* Optional `options` include:
+- Called for each individual task.
+- Optional `options` include:
 
-| Option        | Type     | Description                                  |
-| ------------- | -------- | -------------------------------------------- |
-| `queue`       | `string` | Optional task group ID.                      |
-| `dedupeKey`   | `string` | Prevent duplicate task.                      |
-| `jobId`       | `string` | Custom job ID, overrides auto-generated one. |
-| `dedupeSpan`  | `number` | Wait before pushing duplicate if set.        |
+| Option       | Type     | Description                                  |
+| ------------ | -------- | -------------------------------------------- |
+| `queue`      | `string` | Optional task group ID.                      |
+| `dedupeKey`  | `string` | Prevent duplicate task.                      |
+| `jobId`      | `string` | Custom job ID, overrides auto-generated one. |
+| `dedupeSpan` | `number` | Wait before pushing duplicate if set.        |
 
 ### `onAggregate(tasks, options)`
 
-* Called when task aggregation is enabled.
-* Gets list of tasks collected for aggregation.
-* Ideal for summary processing or batched output.
+- Called when task aggregation is enabled.
+- Gets list of tasks collected for aggregation.
+- Ideal for summary processing or batched output.
 
 ---
 
@@ -90,7 +93,7 @@ Choose how tasks are processed:
 Usage:
 
 ```ts
-executionStrategy: Job.EXECUTION_STRATEGY.MUTEX
+executionStrategy: Job.EXECUTION_STRATEGY.MUTEX;
 ```
 
 ---
@@ -101,49 +104,49 @@ executionStrategy: Job.EXECUTION_STRATEGY.MUTEX
 
 Distribute and send millions of messages in batches. Job breaks the full campaign into smaller tasks and sends them concurrently.
 
-* Use `onRun` to generate message batches.
-* Use `onExecute` to send individual messages.
-* Use `onAggregate` to create a summary report of messages sent.
+- Use `onRun` to generate message batches.
+- Use `onExecute` to send individual messages.
+- Use `onAggregate` to create a summary report of messages sent.
 
 ### 2. **Excel File Processor**
 
 Import large spreadsheets row by row and process each record independently.
 
-* Use `onRun` to read and queue each row.
-* Use `onExecute` to process the row (e.g., validate, save to DB).
-* Use `onAggregate` to compile a report of success/failure counts.
+- Use `onRun` to read and queue each row.
+- Use `onExecute` to process the row (e.g., validate, save to DB).
+- Use `onAggregate` to compile a report of success/failure counts.
 
 ### 3. **Inbound User Message Processor**
 
 Queue messages per user and process them one by one using `SEQUENTIAL` strategy.
 
-* Ensures message handling order per user.
-* Prevents race conditions or double responses.
+- Ensures message handling order per user.
+- Prevents race conditions or double responses.
 
 ### 4. **ETL (Extract-Transform-Load) Pipeline**
 
 Break large data ingestion jobs into stages:
 
-* `onRun`: Fetch and chunk data.
-* `onExecute`: Process and transform each item.
-* `onAggregate`: Load result or send output summary.
+- `onRun`: Fetch and chunk data.
+- `onExecute`: Process and transform each item.
+- `onAggregate`: Load result or send output summary.
 
 ### 5. **Webhook Dispatcher**
 
 Queue and retry webhook deliveries per receiver.
 
-* Use `MUTEX` to avoid flooding the same webhook URL.
-* Add `debounceKey` per receiver.
+- Use `MUTEX` to avoid flooding the same webhook URL.
+- Add `debounceKey` per receiver.
 
 ---
 
 ## 🧠 Advanced Tips
 
-* `this.execute(data)` handles queueing.
-* Use `dedupeKey` to skip duplicate tasks.
-* Use `debounceKey` with `MUTEX` to lock by entity.
-* Return `false` from `onRun` to gracefully stop the job.
-* Use `onAggregate` to clean up, report, or batch result.
+- `this.execute(data)` handles queueing.
+- Use `dedupeKey` to skip duplicate tasks.
+- Use `debounceKey` with `MUTEX` to lock by entity.
+- Return `false` from `onRun` to gracefully stop the job.
+- Use `onAggregate` to clean up, report, or batch result.
 
 ---
 
