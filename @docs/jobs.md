@@ -6,6 +6,17 @@ This framework allows developers to define distributed, scalable background jobs
 
 ## 🚀 Example: Campaign Job with Task Fan-Out
 
+### To create and trigger JOB
+
+```ts
+// Create a new job queue instance (you can reuse this singleton) or call static method
+await SendCampaignJob.run({
+  campaignId: "cmp-001", // Custom data passed to `onRun(job)`
+});
+```
+
+### Handle JOB
+
 ```ts
 @Job({
   name: "sendCampaign",
