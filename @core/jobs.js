@@ -163,7 +163,7 @@ async function initJobs({ name, path }) {
         } else {
           //console.log(`No data to queue(${taskOptions.queue}) !!`);
         }
-        let task = await aggrQueue.add("sequential", taskOptions, {
+        let task = await aggrQueue.add("aggregate", taskOptions, {
           jobId: taskOptions.jobId, //use queue as id to create uniquness
           removeOnComplete: true,
           removeOnFail: true,
@@ -331,7 +331,7 @@ async function initJobs({ name, path }) {
             delayLeft = Math.max(delayLeft, job.timestamp + job.opts.delay - now);
           }
           coreutils.log(`Re-adding job ${job.id} (was delayed :${delayLeft})`);
-          await jobQueue.add("read", job.data, { delay: delayLeft }); // Re-add immediately
+          await jobQueue.add(job.name, job.data, { delay: delayLeft }); // Re-add immediately
         }
         // Recovering delayed tasks
         coreutils.log("Recovering delayed tasks...");
@@ -343,12 +343,29 @@ async function initJobs({ name, path }) {
             delayLeft = Math.max(delayLeft, task.timestamp + task.opts.delay - now);
           }
           coreutils.log(`Re-adding task ${task.id} (was delayed :${delayLeft} )`);
-          await taskQueue.add("execute", task.data, { delay: delayLeft }); // Re-add immediately
+          await taskQueue.add(task.name, task.data, { delay: delayLeft }); // Re-add immediately
+        }
+
+        // Recovering delayed aggregations
+        coreutils.log("Recovering delayed aggregations...");
+        const delayedAggr = await aggrQueue.getDelayed();
+        for (const task of delayedAggr) {
+          let delayLeft = 0;
+          if (task.timestamp && task?.opts?.delay) {
+            const now = Date.now();
+            delayLeft = Math.max(delayLeft, task.timestamp + task.opts.delay - now);
+          }
+          coreutils.log(`Re-adding aggregation ${task.id} (was delayed :${delayLeft} )`);
+          await aggrQueue.add(task.name, task.data, { delay: delayLeft }); // Re-add immediately
         }
       }
 
       jobInstance.execute = async function (data, options = {}) {
         await JobClass.execute(data, options);
+      };
+
+      jobInstance.aggregate = async function (data, options = {}) {
+        await JobClass.aggregate(data, options);
       };
 
       jobInstance.run = async function (data, options = {}) {
