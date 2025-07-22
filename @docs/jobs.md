@@ -40,8 +40,7 @@ A queue represents a logical grouping of tasks or messages that should be execut
 ![Job Execution Flow](./images/job-execution-flow.png)
 
 ### Highlights
-
-- Each queue (e.g., campaign-123) ensures its tasks are executed in a controlled way.
+Each queue (e.g., campaign-123) ensures its tasks are executed in a controlled way.
 - Tasks are dispatched into queues via this.execute(task, { queue }).
 - Multiple workers can process different queues concurrently.
 - All tasks executed under the same queue are grouped and aggregated later.
