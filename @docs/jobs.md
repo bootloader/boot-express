@@ -37,31 +37,7 @@ A queue represents a logical grouping of tasks or messages that should be execut
 | Excel Row Processing	| Each sheet/job can be a queue, allowing task slicing
 
 ### Job Execution Flow with Queues
-                          ┌─────────────────────┐
-                          │     Job Runner      │
-                          │   (onRun method)    │
-                          └─────────┬───────────┘
-                                    │
-                                    ▼
-                      ┌────────────────────────────┐
-                      │   Task Dispatch (execute)   │
-                      │ e.g. queue = "campaign-123" │
-                      └─────────┬──────────┬────────┘
-                                │          │
-           ┌───────────────────▼──┐      ┌─▼────────────────────┐
-           │ Queue: campaign-123 │ ...  │ Queue: campaign-456   │
-           └────┬────────────────┘      └────┬──────────────────┘
-                │                            │
-   ┌────────────▼──────────────┐  ┌──────────▼──────────────┐
-   │  Worker 1 (onExecute)     │  │  Worker 2 (onExecute)   │
-   │  Processing Task #1       │  │  Processing Task #1     │
-   └────────────┬──────────────┘  └──────────┬──────────────┘
-                │                            │
-                ▼                            ▼
-   ┌────────────────────────────┐  ┌────────────────────────────┐
-   │ Aggregation Triggered      │  │ Aggregation Triggered      │
-   │ (onAggregate - batch task) │  │ (onAggregate - batch task) │
-   └────────────────────────────┘  └────────────────────────────┘
+![Job Execution Flow](./images/job-execution-flow.png)
 
 ### Highlights
 
