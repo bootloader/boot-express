@@ -6,6 +6,7 @@ import { redis, waitForReady } from "@bootloader/redison";
 import SafeQueue from "./lib/SafeQueue";
 import { Queue, Worker } from "bullmq";
 import crypto from "crypto";
+import cron from 'node-cron';
 const coreutils = require("./utils/coreutils");
 
 const console = require("@bootloader/log4js").getLogger("jobs");
@@ -54,9 +55,13 @@ async function initJobs({ name, path }) {
     const aggrQueue = new Queue(aggrQueueName, { connection: client, limiter: job.meta.limiter });
 
     const executionStrategy = job.meta.executionStrategy || job.meta.execution_strategy || "concurrent";
-    const aggregationStrategy = job.meta.aggregationStrategy || job.meta.aggregation_strategy || "sequential"; // POSSIBLE VALUE : concurrent, sequential, mutex;
-
     // POSSIBLE VALUE : concurrent, sequential, mutex;
+
+    const aggregationStrategy = job.meta.aggregationStrategy || job.meta.aggregation_strategy || "sequential";
+    // POSSIBLE VALUE : concurrent, sequential, mutex;
+
+    const cronSchedule = job.meta.schedule || job.meta.cronSchedule || job.meta.cron_schedule || null;
+
 
     coreutils.log("@Job", jobsPathRel, file);
 
@@ -188,6 +193,7 @@ async function initJobs({ name, path }) {
                 let { data, context } = job.data;
                 utils.context.fromMap(context);
                 let retTasks = await jobInstance.onRun(data, {
+                  jobId :job.id, 
                   context,
                   execute(...tasks) {
                     pushedTask = [...pushedTask, ...tasks];
@@ -378,6 +384,15 @@ async function initJobs({ name, path }) {
       };
 
       recoverJobs();
+
+
+      if(cronSchedule){
+        coreutils.log(`Schedule job ${job.meta.name} at ${cronSchedule}`);
+        cron.schedule(cronSchedule, () => {
+          JobClass.run({});
+        });
+      }
+
     }
   }
   initQueues(name);
