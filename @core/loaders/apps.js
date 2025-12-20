@@ -7,7 +7,7 @@ const apps = {
   _options: null,
   _appPaths: null,
 
-  load({ name, path, context, include }) {
+  load({ name, path, context, include=[] }) {
     if (this._initialized) return;
 
     //const appName = name;
@@ -19,6 +19,7 @@ const apps = {
         path: "app",
       },
     ];
+    console.log("include",include)
     const appNames = [...include, name];
     for (let appName of appNames) {
       let app = {
