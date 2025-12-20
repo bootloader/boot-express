@@ -7,8 +7,8 @@ const MAX_TAGS = 10;
 const MAX_LIMIT = 50;
 
 class DBLite {
-  constructor() {
-    this.col = mongon.model(DBLiteSchema);
+  constructor({tnt,domain}) {
+    this.col = mongon.model(DBLiteSchema,{tnt,domain});
   }
   // --------------------------------------------------
   // PUT (UPSERT BY namespace + bucket + code)
