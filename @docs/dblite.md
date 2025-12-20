@@ -225,11 +225,3 @@ This keeps bots **safe, fast, and predictable**.
 * Designed for **bot logic**, not general DB usage
 
 ---
-
-If you want, next I can:
-
-* Add **examples per use-case** (config, lookup, KB)
-* Create a **one-page quick reference**
-* Add **error codes & handling guide**
-
-Just tell me.
