@@ -14,17 +14,29 @@ class DBLite {
   // PUT (UPSERT BY namespace + bucket + code)
   // --------------------------------------------------
   async put(input) {
-    this.#validatePut(input);
+    this.#require(input.namespace, "namespace");
+    this.#require(input.code, "code");
+    this.#require(input.record, "record");
+
+    if (input.tags && input.tags.length > MAX_TAGS) {
+      throw new Error("TOO_MANY_TAGS");
+    }
+
+    const size = Buffer.byteLength(JSON.stringify(input.record));
+    if (size > MAX_RECORD_SIZE) {
+      throw new Error("RECORD_TOO_LARGE");
+    }
+
     const now = new Date();
 
     await this.col.updateOne(
       {
         namespace: input.namespace,
-        bucket: input.bucket,
         code: input.code,
       },
       {
         $set: {
+          bucket: input.bucket ?? null,
           section: input.section ?? null,
           tags: input.tags ?? [],
           stamp: input.stamp ?? null,
@@ -44,32 +56,18 @@ class DBLite {
   // --------------------------------------------------
   // GET (FAST PATH – PRIMARY LOOKUP)
   // --------------------------------------------------
-  async get({ namespace, bucket, code }) {
+  async get({ namespace, code }) {
     this.#require(namespace, "namespace");
-    this.#require(bucket, "bucket");
     this.#require(code, "code");
 
-    let DBLite = mongon.model(DBLiteSchema);
-
-    return this.col.findOne(
-      { namespace, bucket, code },
-      { projection: { _id: 0 } }
-    );
+    return this.col.findOne({ namespace, code }, { _id: 0 }).lean().exec();
   }
 
   // --------------------------------------------------
   // LIST (CONTROLLED SEARCH)
   // --------------------------------------------------
   async list(input) {
-    const {
-      namespace,
-      bucket,
-      section,
-      tags,
-      orderBy = "stamp",
-      order = "desc",
-      limit = 20,
-    } = input;
+    const { namespace, bucket, section, tags, orderBy = "stamp", order = "desc", limit = 20 } = input;
 
     this.#require(namespace, "namespace");
 
@@ -98,12 +96,10 @@ class DBLite {
   // --------------------------------------------------
   async delete({ namespace, bucket, code }) {
     this.#require(namespace, "namespace");
-    this.#require(bucket, "bucket");
     this.#require(code, "code");
 
     const res = await this.col.deleteOne({
       namespace,
-      bucket,
       code,
     });
 
@@ -113,15 +109,11 @@ class DBLite {
   // --------------------------------------------------
   // EXISTS (LIGHTWEIGHT CHECK)
   // --------------------------------------------------
-  async exists({ namespace, bucket, code }) {
+  async exists({ namespace, code }) {
     this.#require(namespace, "namespace");
-    this.#require(bucket, "bucket");
     this.#require(code, "code");
 
-    const doc = await this.col.findOne(
-      { namespace, bucket, code },
-      { projection: { _id: 1 } }
-    );
+    const doc = await this.col.findOne({ namespace, code }, { projection: { _id: 1 } });
 
     return !!doc;
   }
@@ -129,11 +121,10 @@ class DBLite {
   // --------------------------------------------------
   // COUNT (SAFE AGGREGATION)
   // --------------------------------------------------
-  async count({ namespace, bucket, section }) {
+  async count({ namespace, section }) {
     this.#require(namespace, "namespace");
 
     const query = { namespace };
-    if (bucket) query.bucket = bucket;
     if (section) query.section = section;
 
     return this.col.countDocuments(query);

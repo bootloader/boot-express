@@ -15,14 +15,18 @@ export default class DBLiteController {
     console.info("===DBLiteController instantsiated:", this.constructor);
   }
 
-  @OpenAPI({query: { namespace:"<namespace>",bucket:"<bucket>"}})
+  @OpenAPI({ query: { namespace: "<namespace>", bucket: "<bucket>" } })
   @RequestMapping({ path: "/list", method: "get" })
   @ResponseBody
-  async homePage({request: { query: {namespace,bucket} }}) {
-    return new DBLiteStore().list({namespace,bucket});
+  async homePage({
+    request: {
+      query: { namespace, bucket },
+    },
+  }) {
+    return new DBLiteStore().list({ namespace, bucket });
   }
 
-  @OpenAPI({json: { namespace:"<namespace>", bucket:"<bucket>", code : "<code>", record : {}}})
+  @OpenAPI({ json: { namespace: "<namespace>", bucket: "<bucket>", code: "<code>", record: {} } })
   @RequestMapping({ path: "/create", method: "post" })
   @ResponseBody
   async postMessage({
@@ -33,7 +37,7 @@ export default class DBLiteController {
     response,
   }) {
     ensure.params({ namespace, code, record }).required();
-    return new DBLiteStore().put({namespace,bucket,code,record});
+    return new DBLiteStore().put({ namespace, bucket, code, record });
   }
 
   @ResponseView
